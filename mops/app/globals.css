@@ -41,4 +41,38 @@ body {
 /* Leaflet map adjustments */
 .leaflet-container {
   font-family: inherit;
+  --bg: #ffffff;
+  --fg: #0f172a;
+  --muted: #64748b;
+  --border: #e2e8f0;
+
+  --green-700: #166534;
+  --green-600: #16a34a;
+  --green-50: #f0fdf4;
+
+  --radius: 12px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.06);
+  --shadow-md: 0 6px 20px rgba(0,0,0,.08);
 }
+
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
+  line-height: 1.45;
+}
+
+a { color: var(--green-700); text-decoration: none; }
+a:hover { text-decoration: underline; }
+

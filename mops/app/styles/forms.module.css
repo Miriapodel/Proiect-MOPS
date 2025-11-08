@@ -1,0 +1,24 @@
+.form { display: grid; gap: var(--space-4); }
+
+.input {
+  width: 100%;
+  appearance: none;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  background: #fff;
+  color: inherit;
+  outline: none;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+
+.input:focus {
+  border-color: var(--green-600);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--green-600) 20%, transparent);
+}
+
+.error {
+  color: #b91c1c;
+  font-size: 14px;
+  margin: -6px 0 0;
+}
