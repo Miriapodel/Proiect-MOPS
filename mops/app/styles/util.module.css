@@ -1,0 +1,10 @@
+.center {
+  min-height: calc(100dvh - 80px);
+  display: grid;
+  place-items: center;
+  padding: var(--space-6) var(--space-4);
+}
+
+.stack > * + * { margin-top: var(--space-4); }
+
+.muted { color: var(--muted); }
