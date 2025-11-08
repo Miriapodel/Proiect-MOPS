@@ -2,6 +2,10 @@
 
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import util from "@/app/styles/util.module.css";
+import auth from "@/app/styles/auth.module.css";
+import forms from "@/app/styles/forms.module.css";
+import btn from "@/app/styles/button.module.css";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -30,21 +34,23 @@ export default function RegisterPage() {
   }
 
   return (
-    <main style={{ maxWidth: 420, margin: "3rem auto" }}>
-      <h1>Create account</h1>
-      <form onSubmit={onSubmit}>
-        <input name="firstName" placeholder="First name" required />
-        <input name="lastName" placeholder="Last name" required />
-        <input name="email" type="email" placeholder="Email" required />
-        <input name="password" type="password" placeholder="Password" required />
-        <button disabled={loading} type="submit">
-          {loading ? "Creating..." : "Register"}
-        </button>
-        {err && <p style={{ color: "crimson" }}>{err}</p>}
-      </form>
-      <p>
-        Already have an account? <a href="/login">Login</a>
-      </p>
-    </main>
+    <div className={util.center}>
+      <div className={auth.card}>
+        <h1 className={auth.title}>Create account</h1>
+        <form className={forms.form} onSubmit={onSubmit}>
+          <input className={forms.input} name="firstName" placeholder="First name" required />
+          <input className={forms.input} name="lastName" placeholder="Last name" required />
+          <input className={forms.input} name="email" type="email" placeholder="Email" required />
+          <input className={forms.input} name="password" type="password" placeholder="Password" required />
+          <button className={`${btn.btn} ${btn.primary}`} disabled={loading} type="submit">
+            {loading ? "Creating..." : "Register"}
+          </button>
+          {err && <p className={forms.error}>{err}</p>}
+        </form>
+        <p className={`${util.muted} ${auth.footer}`}>
+          Already have an account? <a href="/login">Login</a>
+        </p>
+      </div>
+    </div>
   );
 }

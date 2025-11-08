@@ -1,0 +1,31 @@
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 16px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform .02s ease, background-color .15s ease, border-color .15s ease;
+}
+
+.primary {
+  background: var(--green-700);
+  color: #fff;
+}
+
+.primary:hover { background: #14532d; }
+
+.primary:disabled {
+  opacity: .7;
+  cursor: not-allowed;
+}
+
+.ghost {
+  background: var(--green-50);
+  color: var(--green-700);
+  border-color: color-mix(in srgb, var(--green-700) 20%, transparent);
+}

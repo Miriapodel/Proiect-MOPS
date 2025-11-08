@@ -2,6 +2,10 @@
 
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import util from "@/app/styles/util.module.css";
+import auth from "@/app/styles/auth.module.css";
+import forms from "@/app/styles/forms.module.css";
+import btn from "@/app/styles/button.module.css";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -30,19 +34,21 @@ export default function LoginPage() {
   }
 
   return (
-    <main style={{ maxWidth: 420, margin: "3rem auto" }}>
-      <h1>Login</h1>
-      <form onSubmit={onSubmit}>
-        <input name="email" type="email" placeholder="Email" required />
-        <input name="password" type="password" placeholder="Password" required />
-        <button disabled={loading} type="submit">
-          {loading ? "Signing in..." : "Login"}
-        </button>
-        {err && <p style={{ color: "crimson" }}>{err}</p>}
-      </form>
-      <p>
-        No account? <a href="/register">Register</a>
-      </p>
-    </main>
+    <div className={util.center}>
+      <div className={auth.card}>
+        <h1 className={auth.title}>Welcome back</h1>
+        <form className={forms.form} onSubmit={onSubmit}>
+          <input className={forms.input} name="email" type="email" placeholder="Email" required />
+          <input className={forms.input} name="password" type="password" placeholder="Password" required />
+          <button className={`${btn.btn} ${btn.primary}`} disabled={loading} type="submit">
+            {loading ? "Signing in..." : "Login"}
+          </button>
+          {err && <p className={forms.error}>{err}</p>}
+        </form>
+        <p className={`${util.muted} ${auth.footer}`}>
+          No account? <a href="/register">Create one</a>
+        </p>
+      </div>
+    </div>
   );
 }
