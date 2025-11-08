@@ -11,7 +11,7 @@ export async function reverseGeocode(
       `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&addressdetails=1`,
       {
         headers: {
-          'User-Agent': 'MOPS-Incident-Reporter',
+          'User-Agent': 'SafeCity-Incident-Reporter',
         },
       }
     );
@@ -45,7 +45,7 @@ export async function forwardGeocode(
       `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`,
       {
         headers: {
-          'User-Agent': 'MOPS-Incident-Reporter',
+          'User-Agent': 'SafeCity-Incident-Reporter',
         },
       }
     );

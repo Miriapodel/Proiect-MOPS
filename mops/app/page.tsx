@@ -15,13 +15,31 @@ export default async function Dashboard() {
     } catch {}
   }
   return (
-    <main style={{ maxWidth: 720, margin: "3rem auto" }}>
-      <h1>Dashboard</h1>
-      <p>Signed in as {currentUser?.email ?? email}</p>
-      <p>Full name: {currentUser?.firstName} {currentUser?.lastName}</p>
-      <form action="/api/auth/logout" method="post">
-        <LogoutButton />
-      </form>
+    <main className="min-h-screen bg-gradient-to-br from-green-50 via-white to-green-50 py-12">
+      <div className="max-w-4xl mx-auto px-4">
+        <div className="bg-white rounded-2xl shadow-xl p-8 border-2 border-green-100">
+          <h1 className="text-4xl font-bold text-green-900 mb-6">Dashboard</h1>
+          <div className="space-y-4 mb-8">
+            <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+              <p className="text-gray-700">
+                <span className="font-semibold text-green-900">Signed in as:</span>{" "}
+                {currentUser?.email ?? email}
+              </p>
+            </div>
+            <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+              <p className="text-gray-700">
+                <span className="font-semibold text-green-900">Full name:</span>{" "}
+                {currentUser?.firstName} {currentUser?.lastName}
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-4">
+            <form action="/api/auth/logout" method="post">
+              <LogoutButton />
+            </form>
+          </div>
+        </div>
+      </div>
     </main>
   );
 }
