@@ -1,8 +1,20 @@
 @import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
+@import "./components/styles.css";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Green and White Theme */
+  --primary-green: #2D5F3F;
+  --secondary-green: #4A7C59;
+  --light-green: #E8F5E9;
+  --accent-green: #66BB6A;
+  --dark-green: #1B4332;
+  
+  --background: #FFFFFF;
+  --foreground: #1B1B1B;
+  --border: #D1D5DB;
+  --gray-light: #F9FAFB;
+  --gray-medium: #6B7280;
 }
 
 @theme inline {
@@ -10,17 +22,23 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  
+  /* Custom green colors */
+  --color-primary: var(--primary-green);
+  --color-primary-dark: var(--dark-green);
+  --color-primary-light: var(--light-green);
+  --color-accent: var(--accent-green);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Leaflet map adjustments */
+.leaflet-container {
+  font-family: inherit;
 }

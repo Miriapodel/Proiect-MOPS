@@ -13,3 +13,26 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+model Incident {
+  id          String   @id @default(uuid())
+  description String
+  category    String
+  latitude    Float
+  longitude   Float
+  address     String?
+  photos      String[] // Array of photo URLs/paths
+  status      IncidentStatus @default(PENDING)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+enum IncidentStatus {
+  PENDING
+  IN_PROGRESS
+  RESOLVED
+  REJECTED
+}
