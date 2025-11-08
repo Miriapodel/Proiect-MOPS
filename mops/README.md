@@ -17,3 +17,4 @@ bun dev
 To start up prisma, run npx prisma dev
 
 Prisma migrate: npx prisma migrate dev --name init
+Best project
