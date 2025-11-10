@@ -41,6 +41,8 @@ export function CreateIncidentForm({ onSuccess }: CreateIncidentFormProps) {
     formState: { errors },
   } = useForm<CreateIncidentInput>({
     resolver: zodResolver(createIncidentSchema),
+    mode: 'onSubmit', // Only validate on submit
+    reValidateMode: 'onChange', // Re-validate on change after first submit
     defaultValues: {
       description: '',
       category: 'Street Lighting',
@@ -74,8 +76,8 @@ export function CreateIncidentForm({ onSuccess }: CreateIncidentFormProps) {
       const coords = await forwardGeocode(newAddress);
       
       if (coords) {
-        setValue('latitude', coords.latitude, { shouldValidate: true });
-        setValue('longitude', coords.longitude, { shouldValidate: true });
+        setValue('latitude', coords.latitude);
+        setValue('longitude', coords.longitude);
       }
       
       setLoadingAddress(false);
@@ -101,14 +103,14 @@ export function CreateIncidentForm({ onSuccess }: CreateIncidentFormProps) {
   }, [addressSearchTimeout]);
 
   const handleLocationChange = async (lat: number, lng: number) => {
-    setValue('latitude', lat, { shouldValidate: true });
-    setValue('longitude', lng, { shouldValidate: true });
+    setValue('latitude', lat);
+    setValue('longitude', lng);
 
     // Fetch address from coordinates
     setLoadingAddress(true);
     const address = await reverseGeocode(lat, lng);
     if (address) {
-      setValue('address', address, { shouldValidate: true });
+      setValue('address', address);
     }
     setLoadingAddress(false);
   };
@@ -130,6 +132,11 @@ export function CreateIncidentForm({ onSuccess }: CreateIncidentFormProps) {
       const result = await response.json();
 
       if (!response.ok) {
+        // Handle validation errors from API
+        if (result.details && Array.isArray(result.details)) {
+          const errorMessages = result.details.map((d: any) => `${d.field}: ${d.message}`).join(', ');
+          throw new Error(errorMessages);
+        }
         throw new Error(result.error || 'Error creating incident');
       }
 
@@ -148,6 +155,7 @@ export function CreateIncidentForm({ onSuccess }: CreateIncidentFormProps) {
         setSubmitSuccess(false);
       }, 3000);
     } catch (err) {
+      console.error('Form submission error:', err);
       setSubmitError(err instanceof Error ? err.message : 'An unexpected error occurred');
     } finally {
       setIsSubmitting(false);
@@ -155,7 +163,7 @@ export function CreateIncidentForm({ onSuccess }: CreateIncidentFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="incident-form">
+    <form onSubmit={handleSubmit(onSubmit)} className="incident-form" noValidate>
  
 
       {/* Success Message */}
@@ -222,8 +230,14 @@ export function CreateIncidentForm({ onSuccess }: CreateIncidentFormProps) {
           id="description"
           rows={5}
           {...register('description')}
-          placeholder="Describe the incident in detail..."
+          placeholder="Describe the incident in detail... (minimum 10 characters)"
           className="form-textarea"
+          onKeyDown={(e) => {
+            // Prevent Enter from submitting the form in textarea
+            if (e.key === 'Enter' && !e.shiftKey && e.currentTarget.value.trim().length < 10) {
+              e.preventDefault();
+            }
+          }}
         />
         {errors.description && (
           <p className="form-error">{errors.description.message}</p>
@@ -237,7 +251,7 @@ export function CreateIncidentForm({ onSuccess }: CreateIncidentFormProps) {
         </label>
         <PhotoUpload
           photos={photos}
-          onPhotosChange={(newPhotos) => setValue('photos', newPhotos, { shouldValidate: true })}
+          onPhotosChange={(newPhotos) => setValue('photos', newPhotos)}
           maxPhotos={3}
         />
         {errors.photos && (
@@ -281,7 +295,7 @@ export function CreateIncidentForm({ onSuccess }: CreateIncidentFormProps) {
                     type="number"
                     step="0.000001"
                     value={latitude}
-                    onChange={(e) => setValue('latitude', parseFloat(e.target.value) || 0, { shouldValidate: true })}
+                    onChange={(e) => setValue('latitude', parseFloat(e.target.value) || 0)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
                     placeholder="45.9432"
                   />
@@ -295,7 +309,7 @@ export function CreateIncidentForm({ onSuccess }: CreateIncidentFormProps) {
                     type="number"
                     step="0.000001"
                     value={longitude}
-                    onChange={(e) => setValue('longitude', parseFloat(e.target.value) || 0, { shouldValidate: true })}
+                    onChange={(e) => setValue('longitude', parseFloat(e.target.value) || 0)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
                     placeholder="24.9668"
                   />
