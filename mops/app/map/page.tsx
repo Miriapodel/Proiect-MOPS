@@ -1,20 +1,40 @@
-'use client';
+import { prisma } from '@/app/lib/prisma';
+import { MapWrapper } from '@/app/components/MapWrapper';
 
-import dynamic from 'next/dynamic';
+export const dynamic = 'force-dynamic';
 
-const Map = dynamic(() => import('../components/Map'), {
-    ssr: false,
-    loading: () => (
-        <div className="w-full h-screen flex items-center justify-center bg-gray-100 text-xl text-gray-600">
-            Loading map...
-        </div>
-    )
-});
+async function getIncidents() {
+    try {
+        const incidents = await prisma.incident.findMany({
+            include: {
+                user: {
+                    select: {
+                        firstName: true,
+                        lastName: true,
+                    },
+                },
+            },
+            orderBy: { createdAt: 'desc' },
+        });
+        
+        // Serialize the incidents to make them safe for client components
+        return incidents.map(incident => ({
+            ...incident,
+            createdAt: incident.createdAt.toISOString(),
+            updatedAt: incident.updatedAt.toISOString(),
+        }));
+    } catch (error) {
+        console.error('Error fetching incidents:', error);
+        return [];
+    }
+}
 
-export default function MapPage() {
+export default async function MapPage() {
+    const incidents = await getIncidents();
+
     return (
         <div>
-            <Map />
+            <MapWrapper incidents={incidents} />
         </div>
     );
 }

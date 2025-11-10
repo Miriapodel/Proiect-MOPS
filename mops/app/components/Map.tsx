@@ -11,56 +11,22 @@ L.Icon.Default.mergeOptions({
     shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
 });
 
-// News type definition
-interface News {
+// Incident type definition
+interface Incident {
     id: string;
-    name: string;
-    location: {
-        lat: number;
-        lng: number;
-    };
+    category: string;
     description: string;
-    image: string;
+    latitude: number;
+    longitude: number;
+    address: string | null;
+    photos: string[];
+    status: string;
+    createdAt: string; // ISO string instead of Date
+    user: {
+        firstName: string;
+        lastName: string;
+    };
 }
-
-// Hardcoded news data
-const newsData: News[] = [
-    {
-        id: '1',
-        name: 'Grand Opening of Central Park',
-        location: { lat: 45.9432, lng: 24.9668 },
-        description: 'A new beautiful park has opened in the city center with modern facilities.',
-        image: 'https://images.unsplash.com/photo-1557683316-973673baf926?w=400'
-    },
-    {
-        id: '2',
-        name: 'New Tech Hub Announced',
-        location: { lat: 44.4268, lng: 26.1025 },
-        description: 'Major tech companies are investing in a new innovation center.',
-        image: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=400'
-    },
-    {
-        id: '3',
-        name: 'Music Festival This Weekend',
-        location: { lat: 46.7712, lng: 23.6236 },
-        description: 'Three-day music festival featuring international and local artists.',
-        image: 'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=400'
-    },
-    {
-        id: '4',
-        name: 'Historical Monument Restored',
-        location: { lat: 45.6572, lng: 25.6069 },
-        description: 'The iconic landmark has been fully restored after 2 years of work.',
-        image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'
-    },
-    {
-        id: '5',
-        name: 'Beach Cleanup Initiative',
-        location: { lat: 44.1598, lng: 28.6348 },
-        description: 'Volunteers gather for a massive beach cleanup campaign.',
-        image: 'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=400'
-    }
-];
 
 // Component to capture map instance and pass it up
 function MapInstanceCapture({ onMapReady }: { onMapReady: (map: L.Map) => void }) {
@@ -176,13 +142,24 @@ function MapClickHandler({
     return null;
 }
 
-// News markers
-function NewsMarker({
-                        news,
+// Get status badge color
+function getStatusColor(status: string) {
+    const colors = {
+        PENDING: '#fbbf24',
+        IN_PROGRESS: '#3b82f6',
+        RESOLVED: '#10b981',
+        REJECTED: '#ef4444',
+    };
+    return colors[status as keyof typeof colors] || '#fbbf24';
+}
+
+// Incident markers
+function IncidentMarker({
+                        incident,
                         zoomLevel = 16,
                         closePopups
                     }: {
-    news: News;
+    incident: Incident;
     zoomLevel?: number;
     closePopups?: number;
 }) {
@@ -198,7 +175,7 @@ function NewsMarker({
 
     const handleMarkerClick = () => {
         shouldCloseRef.current = false;
-        map.flyTo([news.location.lat, news.location.lng], zoomLevel, {
+        map.flyTo([incident.latitude, incident.longitude], zoomLevel, {
             duration: 1.5,
             easeLinearity: 0.25,
         });
@@ -209,29 +186,86 @@ function NewsMarker({
 
     return (
         <Marker
-            position={[news.location.lat, news.location.lng]}
+            position={[incident.latitude, incident.longitude]}
             eventHandlers={{ click: handleMarkerClick }}
             ref={markerRef}
         >
-            <Popup>
-                <div style={{ minWidth: '200px' }}>
-                    <img
-                        src={news.image}
-                        alt={news.name}
-                        style={{
-                            width: '100%',
-                            height: '120px',
-                            objectFit: 'cover',
-                            borderRadius: '4px',
-                            marginBottom: '8px',
-                        }}
-                    />
-                    <strong style={{ fontSize: '14px' }}>{news.name}</strong>
-                    <p style={{ fontSize: '12px', margin: '8px 0', color: '#666' }}>
-                        {news.description}
+            <Popup maxWidth={300}>
+                <div style={{ minWidth: '250px' }}>
+                    {/* Status Badge */}
+                    <div style={{ 
+                        display: 'inline-block',
+                        padding: '4px 12px',
+                        borderRadius: '12px',
+                        fontSize: '11px',
+                        fontWeight: 'bold',
+                        color: 'white',
+                        backgroundColor: getStatusColor(incident.status),
+                        marginBottom: '8px'
+                    }}>
+                        {incident.status}
+                    </div>
+
+                    {/* Category */}
+                    <h3 style={{ 
+                        fontSize: '16px', 
+                        fontWeight: 'bold',
+                        margin: '8px 0',
+                        color: '#166534'
+                    }}>
+                        {incident.category}
+                    </h3>
+
+                    {/* Photo */}
+                    {incident.photos.length > 0 && (
+                        <img
+                            src={incident.photos[0]}
+                            alt="Incident"
+                            style={{
+                                width: '100%',
+                                height: '120px',
+                                objectFit: 'cover',
+                                borderRadius: '8px',
+                                marginBottom: '8px',
+                            }}
+                        />
+                    )}
+
+                    {/* Description */}
+                    <p style={{ 
+                        fontSize: '13px', 
+                        margin: '8px 0', 
+                        color: '#4b5563',
+                        lineHeight: '1.4'
+                    }}>
+                        {incident.description.length > 100 
+                            ? incident.description.substring(0, 100) + '...' 
+                            : incident.description}
                     </p>
-                    <small style={{ fontSize: '10px', color: '#999' }}>
-                        📍 {news.location.lat.toFixed(4)}, {news.location.lng.toFixed(4)}
+
+                    {/* Reported by */}
+                    <p style={{
+                        fontSize: '12px',
+                        color: '#6b7280',
+                        margin: '8px 0'
+                    }}>
+                        👤 <strong>{incident.user.firstName} {incident.user.lastName}</strong>
+                    </p>
+
+                    {/* Address */}
+                    {incident.address && (
+                        <p style={{
+                            fontSize: '11px',
+                            color: '#9ca3af',
+                            margin: '4px 0'
+                        }}>
+                            📍 {incident.address}
+                        </p>
+                    )}
+
+                    {/* Coordinates */}
+                    <small style={{ fontSize: '10px', color: '#d1d5db' }}>
+                        Coords: {incident.latitude.toFixed(4)}, {incident.longitude.toFixed(4)}
                     </small>
                 </div>
             </Popup>
@@ -240,8 +274,17 @@ function NewsMarker({
 }
 
 // Main Map component
-export default function Map() {
-    const position: [number, number] = [45.9432, 24.9668];
+export default function Map({ incidents }: { incidents: Incident[] }) {
+    // Calculate center based on incidents or use default
+    const getMapCenter = (): [number, number] => {
+        if (incidents.length === 0) return [45.9432, 24.9668]; // Brașov, Romania default
+        
+        const avgLat = incidents.reduce((sum, inc) => sum + inc.latitude, 0) / incidents.length;
+        const avgLng = incidents.reduce((sum, inc) => sum + inc.longitude, 0) / incidents.length;
+        return [avgLat, avgLng];
+    };
+
+    const position = getMapCenter();
 
     const [clickedPosition, setClickedPosition] = useState<[number, number] | null>(null);
     const [closePopups, setClosePopups] = useState(0);
@@ -287,16 +330,16 @@ export default function Map() {
                     onMapMove={handleMapMove}
                 />
 
-                {newsData.map((news) => (
-                    <NewsMarker
-                        key={news.id}
-                        news={news}
+                {incidents.map((incident) => (
+                    <IncidentMarker
+                        key={incident.id}
+                        incident={incident}
                         zoomLevel={clickZoomLevel}
                         closePopups={closePopups}
                     />
                 ))}
 
-                {/* Marker at clicked position with auto popup & deletion on close */}
+                {/* Marker at clicked position - View location details */}
                 {clickedPosition && (
                     <Marker
                         position={clickedPosition}
@@ -313,30 +356,11 @@ export default function Map() {
                     >
                         <Popup>
                             <div>
-                                <strong>Post news here?</strong>
+                                <strong>Location Details</strong>
                                 <br />
-                                Lat: {clickedPosition[0].toFixed(4)}
+                                Lat: {clickedPosition[0].toFixed(6)}
                                 <br />
-                                Lng: {clickedPosition[1].toFixed(4)}
-                                <br />
-                                <button
-                                    onClick={() =>
-                                        alert(
-                                            `Posting news at: ${clickedPosition[0]}, ${clickedPosition[1]}`
-                                        )
-                                    }
-                                    style={{
-                                        marginTop: '8px',
-                                        padding: '6px 12px',
-                                        background: '#3b82f6',
-                                        color: 'white',
-                                        border: 'none',
-                                        borderRadius: '4px',
-                                        cursor: 'pointer',
-                                    }}
-                                >
-                                    Post News Here
-                                </button>
+                                Lng: {clickedPosition[1].toFixed(6)}
                             </div>
                         </Popup>
                     </Marker>
