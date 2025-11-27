@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 interface IncidentCardProps {
   incident: {
@@ -79,9 +80,14 @@ export function IncidentCard({ incident, currentUserId }: IncidentCardProps) {
       <div className="flex items-start justify-between mb-4 pb-4 border-b-2 border-gray-100">
         <div className="flex-1">
           <div className="flex items-center gap-3 mb-2">
-            <h2 className="text-xl font-bold text-green-900">
-              {incident.category}
-            </h2>
+           <h2 className="text-lg font-semibold text-gray-900 leading-snug">
+            <Link
+              href={`/incidents/${incident.id}`}
+              className="hover:underline hover:text-green-800"
+            >
+              {incident.description}
+            </Link>
+          </h2>
             {getStatusBadge(incident.status)}
           </div>
           <p className="text-sm text-gray-600 mb-1">
@@ -99,7 +105,6 @@ export function IncidentCard({ incident, currentUserId }: IncidentCardProps) {
           </p>
         </div>
 
-        {/* Delete Button - Only shown to owner */}
         {isOwner && (
           <div className="ml-4">
             {!showDeleteConfirm ? (

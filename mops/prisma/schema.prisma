@@ -18,7 +18,11 @@ model Incident {
   photos      String[] // Array of photo URLs/paths
   status      IncidentStatus @default(PENDING)
   userId      String   // The user who reported the incident
-  user        Users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        Users    @relation("UserIncidents", fields: [userId], references: [id], onDelete: Cascade)
+  assignedToId String?
+  assignedTo   Users?   @relation("AssignedIncidents", fields: [assignedToId], references: [id])
+  history     IncidentHistory[]
+  
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -27,19 +31,44 @@ model Incident {
   @@index([userId])
 }
 
+model IncidentHistory {
+  id          String   @id @default(uuid())
+  incidentId  String
+  incident    Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  
+  changedById String
+  changedBy   Users    @relation(fields: [changedById], references: [id])
+  
+  oldStatus   IncidentStatus
+  newStatus   IncidentStatus
+  
+  createdAt   DateTime @default(now())
+}
+
 enum IncidentStatus {
   PENDING
   IN_PROGRESS
   RESOLVED
   REJECTED
 }
+
+enum Role {
+  USER
+  OPERATOR
+  ADMIN
+}
+
 model Users {
   id        String   @id @default(uuid())
   firstName String
   lastName  String
   email     String   @unique
   password  String
-  incidents Incident[] // Incidents reported by this user
+  role      Role     @default(USER)
+  incidents Incident[] @relation("UserIncidents")
+  assignedIncidents Incident[] @relation("AssignedIncidents")
+
+  historyChanges    IncidentHistory[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

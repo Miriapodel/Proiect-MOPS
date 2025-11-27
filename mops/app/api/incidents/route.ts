@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/app/lib/prisma';
+import { prisma } from '@/lib/prisma';
 import { createIncidentSchema } from '@/app/lib/validations/incident';
 import { getCurrentUser } from '@/lib/currentUser';
 import { ZodError } from 'zod';

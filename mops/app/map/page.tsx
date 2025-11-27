@@ -1,4 +1,4 @@
-import { prisma } from '@/app/lib/prisma';
+import { prisma } from '@/lib/prisma';
 import { MapWrapper } from '@/app/components/MapWrapper';
 
 export const dynamic = 'force-dynamic';
@@ -17,7 +17,6 @@ async function getIncidents() {
             orderBy: { createdAt: 'desc' },
         });
         
-        // Serialize the incidents to make them safe for client components
         return incidents.map(incident => ({
             ...incident,
             createdAt: incident.createdAt.toISOString(),
