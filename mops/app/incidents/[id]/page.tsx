@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
 import { IncidentStatus, Role } from "@/app/generated/prisma";
 import StatusForm from "@/app/components/StatusForm";
+import Comments from "@/app/components/Comments";
 
 
 type PageProps = {
@@ -122,6 +123,9 @@ export default async function IncidentDetailPage({ params }: PageProps) {
                         </ul>
                     </div>
                 )}
+
+                {/* Comments */}
+                <Comments incidentId={incident.id} />
             </div>
         </div>
     );

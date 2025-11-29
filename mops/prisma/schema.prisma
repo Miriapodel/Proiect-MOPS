@@ -22,6 +22,7 @@ model Incident {
   assignedToId String?
   assignedTo   Users?   @relation("AssignedIncidents", fields: [assignedToId], references: [id])
   history     IncidentHistory[]
+  comments    Comment[]
   
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -69,7 +70,31 @@ model Users {
   assignedIncidents Incident[] @relation("AssignedIncidents")
 
   historyChanges    IncidentHistory[]
+  comments          Comment[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Comment {
+  id         String   @id @default(uuid())
+  incidentId String
+  incident   Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  userId     String
+  user       Users    @relation(fields: [userId], references: [id])
+
+  parentId   String?
+  parent     Comment? @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies    Comment[] @relation("CommentReplies")
+
+  content    String
+  deletedAt  DateTime?
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([incidentId])
+  @@index([parentId])
+  @@index([createdAt])
 }

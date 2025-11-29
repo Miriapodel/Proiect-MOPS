@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { writeFile } from 'fs/promises';
+import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
 import { randomUUID } from 'crypto';
 
@@ -33,11 +33,19 @@ export async function POST(request: NextRequest) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    const extension = file.name.split('.').pop();
-    const filename = `${randomUUID()}.${extension}`;
-    
+    const typeToExt: Record<string, string> = {
+      'image/jpeg': 'jpg',
+      'image/png': 'png',
+      'image/webp': 'webp',
+    };
+    const safeExt = typeToExt[file.type] ?? (file.name.split('.').pop()?.toLowerCase() || 'jpg');
+    const filename = `${randomUUID()}.${safeExt}`;
+
     const uploadDir = join(process.cwd(), 'public', 'uploads');
     const filePath = join(uploadDir, filename);
+
+    // Ensure uploads directory exists (recursive = true avoids ENOENT)
+    await mkdir(uploadDir, { recursive: true });
 
     await writeFile(filePath, buffer);
 
