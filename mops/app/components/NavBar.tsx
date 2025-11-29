@@ -15,6 +15,9 @@ export default async function NavBar() {
             <Link href="/incidents" className="hover:text-green-800">
               Incidents
             </Link>
+            <Link href="/incidents/mine" className="hover:text-green-800">
+              My Incidents
+            </Link>
             <Link href="/map" className="hover:text-green-800">
               Map
             </Link>

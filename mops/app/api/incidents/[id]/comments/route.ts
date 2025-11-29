@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/currentUser';
 import { ZodError } from 'zod';
 import { createCommentSchema } from '@/app/lib/validations/comment';
-``
+
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
         const { id } = await params;
@@ -29,7 +29,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
         return NextResponse.json({ comments }, { status: 200 });
     } catch (error) {
         console.error('Error fetching comments:', error);
-        return NextResponse.json({ error: 'Eroare la încărcarea comentariilor' }, { status: 500 });
+        return NextResponse.json({ error: 'Error loading comments' }, { status: 500 });
     }
 }
 
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         const user = await getCurrentUser();
 
         if (!user) {
-            return NextResponse.json({ error: 'Trebuie să fii autentificat pentru a comenta' }, { status: 401 });
+            return NextResponse.json({ error: 'You must be authenticated to comment' }, { status: 401 });
         }
 
         const body = await request.json();
@@ -48,7 +48,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         // ensure incident exists
         const incident = await prisma.incident.findUnique({ where: { id } });
         if (!incident) {
-            return NextResponse.json({ error: 'Incidentul nu există' }, { status: 404 });
+            return NextResponse.json({ error: 'Incident does not exist' }, { status: 404 });
         }
 
         // if replying, ensure parent belongs to same incident
@@ -58,7 +58,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
                 select: { id: true, incidentId: true },
             });
             if (!parent || parent.incidentId !== id) {
-                return NextResponse.json({ error: 'Comentariul părinte este invalid' }, { status: 400 });
+                return NextResponse.json({ error: 'Parent comment is invalid' }, { status: 400 });
             }
         }
 
@@ -90,13 +90,13 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
             return NextResponse.json(
                 {
                     success: false,
-                    error: 'Date de intrare invalide',
+                    error: 'Invalid input data',
                     details: error.issues.map((err) => ({ field: err.path.join('.'), message: err.message })),
                 },
                 { status: 400 }
             );
         }
         console.error('Error creating comment:', error);
-        return NextResponse.json({ error: 'Eroare la crearea comentariului' }, { status: 500 });
+        return NextResponse.json({ error: 'Error creating comment' }, { status: 500 });
     }
 }

@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import Image from "next/image";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/currentUser";
@@ -9,6 +10,7 @@ import Comments from "@/app/components/Comments";
 
 type PageProps = {
     params: Promise<{ id: string }>;
+    searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
 };
 
 async function getIncident(id: string) {
@@ -31,8 +33,12 @@ async function getIncident(id: string) {
     return incident;
 }
 
-export default async function IncidentDetailPage({ params }: PageProps) {
+export default async function IncidentDetailPage({ params, searchParams }: PageProps) {
     const { id } = await params;
+    const sp = await searchParams;
+    const rawReturnTo = typeof sp?.returnTo === 'string' ? sp.returnTo : undefined;
+    const decodedReturnTo = rawReturnTo ? decodeURIComponent(rawReturnTo) : undefined;
+    const safeBackHref = decodedReturnTo && decodedReturnTo.startsWith('/incidents') ? decodedReturnTo : '/incidents';
     const currentUser = await getCurrentUser();
     const incident = await getIncident(id);
 
@@ -45,8 +51,8 @@ export default async function IncidentDetailPage({ params }: PageProps) {
         (currentUser.role === Role.ADMIN || currentUser.role === Role.OPERATOR);
 
     return (
-        <div className="min-h-screen bg-gray-50 py-8 px-4">
-            <div className="max-w-3xl mx-auto space-y-6">
+        <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-green-50 py-8">
+            <div className="max-w-3xl mx-auto px-4 space-y-6">
                 {/* ... (Header content remains the same) ... */}
 
                 <div className="flex items-center justify-between">
@@ -59,7 +65,7 @@ export default async function IncidentDetailPage({ params }: PageProps) {
                         </p>
                     </div>
                     <Link
-                        href="/incidents"
+                        href={safeBackHref}
                         className="text-sm text-green-700 hover:text-green-900 underline"
                     >
                         ← Back to list
@@ -84,6 +90,38 @@ export default async function IncidentDetailPage({ params }: PageProps) {
                         </div>
                         <StatusBadge status={incident.status} />
                     </div>
+
+                    {/* Description */}
+                    <div>
+                        <h3 className="text-sm font-semibold text-gray-700 mb-2">Description</h3>
+                        <p className="text-gray-800 leading-relaxed bg-gray-50 p-4 rounded-lg">
+                            {incident.description}
+                        </p>
+                    </div>
+
+                    {incident.photos && incident.photos.length > 0 && (
+                        <div className="mt-4">
+                            <h3 className="text-sm font-semibold text-gray-700 mb-3">
+                                Photos ({incident.photos.length}):
+                            </h3>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                                {incident.photos.map((photo: string, index: number) => (
+                                    <div
+                                        key={index}
+                                        className="relative aspect-square rounded-xl overflow-hidden border-2 border-green-200 shadow-md hover:shadow-lg transition-all group"
+                                    >
+                                        <Image
+                                            src={photo}
+                                            alt={`Incident photo ${index + 1}`}
+                                            fill
+                                            className="object-cover"
+                                        />
+                                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
 
                 </div>
 
