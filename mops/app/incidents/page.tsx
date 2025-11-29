@@ -1,30 +1,35 @@
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/currentUser';
-import Image from 'next/image';
 import Link from 'next/link';
 import { IncidentCard } from '@/app/components/IncidentCard';
+import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from '@/lib/config';
+import PageSizeSelector from '@/app/components/PageSizeSelector';
+import PaginationControls from '@/app/components/PaginationControls';
 
 export const dynamic = 'force-dynamic';
 
-async function getIncidents() {
-  try {
-    const incidents = await prisma.incident.findMany({
-      include: {
-        user: {
-          select: {
-            firstName: true,
-            lastName: true,
-            email: true,
-          },
-        },
-      },
+async function getPaginatedIncidents(params: { page: number; pageSize: number; status?: string | null; category?: string | null; }) {
+  const { page, pageSize, status, category } = params;
+  const where: any = {};
+  if (status) where.status = status;
+  if (category) where.category = category;
+
+  const skip = (page - 1) * pageSize;
+
+  const [incidents, total] = await prisma.$transaction([
+    prisma.incident.findMany({
+      where,
       orderBy: { createdAt: 'desc' },
-    });
-    return incidents;
-  } catch (error) {
-    console.error('Error fetching incidents:', error);
-    return [];
-  }
+      skip,
+      take: pageSize,
+      include: {
+        user: { select: { firstName: true, lastName: true, email: true } },
+      },
+    }),
+    prisma.incident.count({ where }),
+  ]);
+
+  return { incidents, total };
 }
 
 function getStatusBadge(status: string) {
@@ -36,7 +41,7 @@ function getStatusBadge(status: string) {
   };
 
   const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.PENDING;
-  
+
   return (
     <span className={`px-3 py-1 rounded-full text-xs font-semibold border-2 ${config.color}`}>
       {config.label}
@@ -44,9 +49,20 @@ function getStatusBadge(status: string) {
   );
 }
 
-export default async function IncidentsPage() {
-  const incidents = await getIncidents();
+export default async function IncidentsPage({ searchParams }: { searchParams?: Promise<{ [key: string]: string | string[] | undefined }> }) {
+  const params = await searchParams;
+  const pageParam = typeof params?.page === 'string' ? params?.page : Array.isArray(params?.page) ? params?.page[0] : undefined;
+  const pageSizeParam = typeof params?.pageSize === 'string' ? params?.pageSize : Array.isArray(params?.pageSize) ? params?.pageSize[0] : undefined;
+  const status = typeof params?.status === 'string' ? params?.status : undefined;
+  const category = typeof params?.category === 'string' ? params?.category : undefined;
+
+  const page = Math.max(1, parseInt(pageParam || '1', 10) || 1);
+  const rawSize = parseInt(pageSizeParam || String(DEFAULT_PAGE_SIZE), 10) || DEFAULT_PAGE_SIZE;
+  const pageSize = Math.min(Math.max(1, rawSize), MAX_PAGE_SIZE);
+
+  const { incidents, total } = await getPaginatedIncidents({ page, pageSize, status, category });
   const currentUser = await getCurrentUser();
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   return (
     <div className="page-container">
@@ -86,7 +102,7 @@ export default async function IncidentsPage() {
           <div className="space-y-6">
             <div className="bg-white rounded-xl shadow-md p-4 border-2 border-green-100">
               <p className="text-gray-700 font-semibold">
-                Total incidents: <span className="text-green-700">{incidents.length}</span>
+                Total incidents: <span className="text-green-700">{total}</span>
               </p>
             </div>
 
@@ -98,6 +114,11 @@ export default async function IncidentsPage() {
                   currentUserId={currentUser?.id}
                 />
               ))}
+            </div>
+
+            <div className="flex items-center justify-center gap-4">
+              <PaginationControls page={page} totalPages={totalPages} />
+              <PageSizeSelector options={[5, 10, 20, 50, 100]} label="" />
             </div>
           </div>
         )}

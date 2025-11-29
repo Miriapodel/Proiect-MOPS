@@ -3,27 +3,24 @@ import { prisma } from '@/lib/prisma';
 import { createIncidentSchema } from '@/app/lib/validations/incident';
 import { getCurrentUser } from '@/lib/currentUser';
 import { ZodError } from 'zod';
+import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from '@/lib/config';
 
 export async function POST(request: NextRequest) {
   try {
-    // Get current user
     const currentUser = await getCurrentUser();
     if (!currentUser) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Trebuie să fii autentificat pentru a crea un incident',
+          error: 'You must be authenticated to create an incident',
         },
         { status: 401 }
       );
     }
 
     const body = await request.json();
-
-    // Validate request body
     const validatedData = createIncidentSchema.parse(body);
 
-    // Create incident in database
     const incident = await prisma.incident.create({
       data: {
         description: validatedData.description,
@@ -41,17 +38,16 @@ export async function POST(request: NextRequest) {
       {
         success: true,
         incident,
-        message: 'Incidentul a fost creat cu succes',
+        message: 'Incident created successfully',
       },
       { status: 201 }
     );
   } catch (error) {
-    // Handle validation errors
     if (error instanceof ZodError) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Date de intrare invalide',
+          error: 'Invalid input data',
           details: error.issues.map((err) => ({
             field: err.path.join('.'),
             message: err.message,
@@ -61,54 +57,68 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Handle database errors
     console.error('Incident creation error:', error);
     return NextResponse.json(
       {
         success: false,
-        error: 'Eroare la crearea incidentului',
+        error: 'Error creating incident',
       },
       { status: 500 }
     );
   }
 }
 
-// Get all incidents
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
     const category = searchParams.get('category');
+    const pageParam = searchParams.get('page');
+    const pageSizeParam = searchParams.get('pageSize');
+
+    const page = Math.max(1, parseInt(pageParam || '1', 10) || 1);
+    const rawSize = parseInt(pageSizeParam || String(DEFAULT_PAGE_SIZE), 10) || DEFAULT_PAGE_SIZE;
+    const pageSize = Math.min(Math.max(1, rawSize), MAX_PAGE_SIZE);
+    const skip = (page - 1) * pageSize;
 
     const where: any = {};
     if (status) where.status = status;
     if (category) where.category = category;
 
-    const incidents = await prisma.incident.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-    });
+    const [incidents, total] = await prisma.$transaction([
+      prisma.incident.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: pageSize,
+        include: {
+          user: {
+            select: { firstName: true, lastName: true, email: true },
+          },
+        },
+      }),
+      prisma.incident.count({ where }),
+    ]);
 
-    return NextResponse.json({ incidents }, { status: 200 });
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    return NextResponse.json({ incidents, count: total, page, pageSize, totalPages }, { status: 200 });
   } catch (error) {
     console.error('Error fetching incidents:', error);
     return NextResponse.json(
-      { error: 'Eroare la încărcarea incidentelor' },
+      { error: 'Error loading incidents' },
       { status: 500 }
     );
   }
 }
 
-// Delete an incident
 export async function DELETE(request: NextRequest) {
   try {
-    // Get current user
     const currentUser = await getCurrentUser();
     if (!currentUser) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Trebuie să fii autentificat pentru a șterge un incident',
+          error: 'You must be authenticated to delete an incident',
         },
         { status: 401 }
       );
@@ -121,13 +131,12 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: 'ID-ul incidentului este necesar',
+          error: 'Incident ID is required',
         },
         { status: 400 }
       );
     }
 
-    // Check if incident exists and belongs to the user
     const incident = await prisma.incident.findUnique({
       where: { id },
       select: { userId: true },
@@ -137,24 +146,22 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Incidentul nu a fost găsit',
+          error: 'Incident not found',
         },
         { status: 404 }
       );
     }
 
-    // Check ownership
     if (incident.userId !== currentUser.id) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Nu aveți permisiunea de a șterge acest incident',
+          error: 'You do not have permission to delete this incident',
         },
         { status: 403 }
       );
     }
 
-    // Delete the incident
     await prisma.incident.delete({
       where: { id },
     });
@@ -162,7 +169,7 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json(
       {
         success: true,
-        message: 'Incident șters cu succes',
+        message: 'Incident deleted successfully',
       },
       { status: 200 }
     );
@@ -171,10 +178,9 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: 'Eroare la ștergerea incidentului',
+        error: 'Error deleting incident',
       },
       { status: 500 }
     );
   }
 }
-
