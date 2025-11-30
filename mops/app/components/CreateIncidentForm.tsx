@@ -49,11 +49,11 @@ export function CreateIncidentForm({ onSuccess }: CreateIncidentFormProps) {
       latitude: 45.9432, // Brașov, Romania default
       longitude: 24.9668,
       address: '',
-      photos: [],
+      photoIds: [],
     },
   });
 
-  const photos = watch('photos');
+  const photoIds = watch('photoIds');
   const latitude = watch('latitude');
   const longitude = watch('longitude');
   const address = watch('address');
@@ -74,12 +74,12 @@ export function CreateIncidentForm({ onSuccess }: CreateIncidentFormProps) {
     const timeout = setTimeout(async () => {
       setLoadingAddress(true);
       const coords = await forwardGeocode(newAddress);
-      
+
       if (coords) {
         setValue('latitude', coords.latitude);
         setValue('longitude', coords.longitude);
       }
-      
+
       setLoadingAddress(false);
     }, 1000); // Wait 1 second after user stops typing
 
@@ -141,11 +141,11 @@ export function CreateIncidentForm({ onSuccess }: CreateIncidentFormProps) {
       }
 
       setSubmitSuccess(true);
-      
+
       // Reset form
       setValue('description', '');
-      setValue('photos', []);
-      
+      setValue('photoIds', []);
+
       if (onSuccess) {
         onSuccess(result.incident.id);
       }
@@ -164,7 +164,7 @@ export function CreateIncidentForm({ onSuccess }: CreateIncidentFormProps) {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="incident-form" noValidate>
- 
+
 
       {/* Success Message */}
       {submitSuccess && (
@@ -250,12 +250,12 @@ export function CreateIncidentForm({ onSuccess }: CreateIncidentFormProps) {
           Photos (max 3)
         </label>
         <PhotoUpload
-          photos={photos}
-          onPhotosChange={(newPhotos) => setValue('photos', newPhotos)}
+          photoIds={photoIds as unknown as string[]}
+          onPhotoIdsChange={(newIds) => setValue('photoIds', newIds)}
           maxPhotos={3}
         />
-        {errors.photos && (
-          <p className="form-error">{errors.photos.message}</p>
+        {(errors as any).photoIds && (
+          <p className="form-error">{(errors as any).photoIds.message}</p>
         )}
       </div>
 
@@ -264,7 +264,7 @@ export function CreateIncidentForm({ onSuccess }: CreateIncidentFormProps) {
         <label className="form-label">
           Location <span className="form-label-required">*</span>
         </label>
-        
+
         {!mapLoadError ? (
           <div className="relative">
             <MapPicker
@@ -326,7 +326,7 @@ export function CreateIncidentForm({ onSuccess }: CreateIncidentFormProps) {
             </div>
           </div>
         )}
-        
+
         {(errors.latitude || errors.longitude) && (
           <p className="form-error">Select a valid location on the map or enter valid coordinates</p>
         )}

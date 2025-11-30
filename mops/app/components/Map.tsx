@@ -19,7 +19,8 @@ interface Incident {
     latitude: number;
     longitude: number;
     address: string | null;
-    photos: string[];
+    photoIds?: string[];
+    photos?: { id: string }[];
     status: string;
     createdAt: string; // ISO string instead of Date
     user: {
@@ -122,10 +123,10 @@ const hoverOff = (e: React.MouseEvent<HTMLButtonElement>) => {
 
 // Component to handle map clicks
 function MapClickHandler({
-                             onMapClick,
-                             zoomLevel = 15,
-                             onMapMove
-                         }: {
+    onMapClick,
+    zoomLevel = 15,
+    onMapMove
+}: {
     onMapClick: (lat: number, lng: number) => void;
     zoomLevel?: number;
     onMapMove?: () => void;
@@ -155,10 +156,10 @@ function getStatusColor(status: string) {
 
 // Incident markers
 function IncidentMarker({
-                        incident,
-                        zoomLevel = 16,
-                        closePopups
-                    }: {
+    incident,
+    zoomLevel = 16,
+    closePopups
+}: {
     incident: Incident;
     zoomLevel?: number;
     closePopups?: number;
@@ -193,7 +194,7 @@ function IncidentMarker({
             <Popup maxWidth={300}>
                 <div style={{ minWidth: '250px' }}>
                     {/* Status Badge */}
-                    <div style={{ 
+                    <div style={{
                         display: 'inline-block',
                         padding: '4px 12px',
                         borderRadius: '12px',
@@ -207,8 +208,8 @@ function IncidentMarker({
                     </div>
 
                     {/* Category */}
-                    <h3 style={{ 
-                        fontSize: '16px', 
+                    <h3 style={{
+                        fontSize: '16px',
                         fontWeight: 'bold',
                         margin: '8px 0',
                         color: '#166534'
@@ -217,9 +218,12 @@ function IncidentMarker({
                     </h3>
 
                     {/* Photo */}
-                    {incident.photos.length > 0 && (
+                    {(incident.photoIds?.length || incident.photos?.length) && (
                         <img
-                            src={incident.photos[0]}
+                            src={(() => {
+                                const id = incident.photoIds?.[0] ?? incident.photos?.[0]?.id;
+                                return id ? `/api/photos/${id}` : '';
+                            })()}
                             alt="Incident"
                             style={{
                                 width: '100%',
@@ -232,14 +236,14 @@ function IncidentMarker({
                     )}
 
                     {/* Description */}
-                    <p style={{ 
-                        fontSize: '13px', 
-                        margin: '8px 0', 
+                    <p style={{
+                        fontSize: '13px',
+                        margin: '8px 0',
                         color: '#4b5563',
                         lineHeight: '1.4'
                     }}>
-                        {incident.description.length > 100 
-                            ? incident.description.substring(0, 100) + '...' 
+                        {incident.description.length > 100
+                            ? incident.description.substring(0, 100) + '...'
                             : incident.description}
                     </p>
 
@@ -278,7 +282,7 @@ export default function Map({ incidents }: { incidents: Incident[] }) {
     // Calculate center based on incidents or use default
     const getMapCenter = (): [number, number] => {
         if (incidents.length === 0) return [45.9432, 24.9668]; // Brașov, Romania default
-        
+
         const avgLat = incidents.reduce((sum, inc) => sum + inc.latitude, 0) / incidents.length;
         const avgLng = incidents.reduce((sum, inc) => sum + inc.longitude, 0) / incidents.length;
         return [avgLat, avgLng];

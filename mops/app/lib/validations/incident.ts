@@ -39,41 +39,9 @@ export const createIncidentSchema = z.object({
       message: 'Longitude must be a valid number',
     }),
   address: z.string().optional(),
-  photos: z
+  photoIds: z
     .array(
-      z.string().refine(
-        (val) => {
-          // Reject empty strings
-          if (!val || val.length === 0) return false;
-          
-          // Reject path traversal attempts
-          if (val.includes('../') || val.includes('..\\')) return false;
-          
-          // For relative paths (starting with /)
-          if (val.startsWith('/')) {
-            // Must have more than just "/"
-            if (val.length === 1) return false;
-            // Must not have multiple slashes in a row
-            if (val.includes('//')) return false;
-            return true;
-          }
-          
-          // For absolute URLs (http:// or https://)
-          if (val.startsWith('http://') || val.startsWith('https://')) {
-            // Validate it's a complete URL
-            try {
-              const url = new URL(val);
-              // URL must have a hostname
-              return url.hostname.length > 0;
-            } catch {
-              return false;
-            }
-          }
-          
-          return false;
-        },
-        { message: 'Invalid photo URL' }
-      )
+      z.string().uuid('Invalid photo id')
     )
     .max(3, 'You can upload a maximum of 3 photos')
     .default([]),

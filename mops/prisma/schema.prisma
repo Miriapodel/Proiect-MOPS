@@ -15,7 +15,7 @@ model Incident {
   latitude    Float
   longitude   Float
   address     String?
-  photos      String[] // Array of photo URLs/paths
+  photos      Photo[]
   status      IncidentStatus @default(PENDING)
   userId      String   // The user who reported the incident
   user        Users    @relation("UserIncidents", fields: [userId], references: [id], onDelete: Cascade)
@@ -30,6 +30,20 @@ model Incident {
   @@index([status])
   @@index([createdAt])
   @@index([userId])
+}
+
+model Photo {
+  id         String   @id @default(uuid())
+  incidentId String?
+  incident   Incident? @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  mimeType   String
+  size       Int
+  data       Bytes
+
+  createdAt  DateTime @default(now())
+
+  @@index([incidentId])
 }
 
 model IncidentHistory {

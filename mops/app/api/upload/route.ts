@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { writeFile, mkdir } from 'fs/promises';
-import { join } from 'path';
-import { randomUUID } from 'crypto';
+import { persistUpload } from '@/services/upload.service';
+import { isAppError } from '@/lib/errors';
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,42 +14,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      return NextResponse.json(
-        { error: 'File cannot exceed 5MB' },
-        { status: 400 }
-      );
+    try {
+      const incidentId = formData.get('incidentId') as string | null;
+      const { photoId } = await persistUpload(file, incidentId ?? undefined);
+      return NextResponse.json({ photoId }, { status: 200 });
+    } catch (err) {
+      if (isAppError(err)) {
+        return NextResponse.json({ error: err.message, code: err.code }, { status: err.status });
+      }
+      throw err;
     }
-
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
-    if (!allowedTypes.includes(file.type)) {
-      return NextResponse.json(
-        { error: 'Only JPEG, PNG and WebP images are allowed' },
-        { status: 400 }
-      );
-    }
-
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-
-    const typeToExt: Record<string, string> = {
-      'image/jpeg': 'jpg',
-      'image/png': 'png',
-      'image/webp': 'webp',
-    };
-    const safeExt = typeToExt[file.type] ?? (file.name.split('.').pop()?.toLowerCase() || 'jpg');
-    const filename = `${randomUUID()}.${safeExt}`;
-
-    const uploadDir = join(process.cwd(), 'public', 'uploads');
-    const filePath = join(uploadDir, filename);
-
-    // Ensure uploads directory exists (recursive = true avoids ENOENT)
-    await mkdir(uploadDir, { recursive: true });
-
-    await writeFile(filePath, buffer);
-
-    const url = `/uploads/${filename}`;
-    return NextResponse.json({ url }, { status: 200 });
   } catch (error) {
     console.error('Upload error:', error);
     return NextResponse.json(

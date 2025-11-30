@@ -20,6 +20,7 @@ async function getIncident(id: string) {
             user: {
                 select: { firstName: true, lastName: true, email: true },
             },
+            photos: { select: { id: true } },
             history: {
                 orderBy: { createdAt: "desc" },
                 include: {
@@ -105,15 +106,16 @@ export default async function IncidentDetailPage({ params, searchParams }: PageP
                                 Photos ({incident.photos.length}):
                             </h3>
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                                {incident.photos.map((photo: string, index: number) => (
+                                {(incident.photos as { id: string }[]).map((p, index: number) => (
                                     <div
                                         key={index}
                                         className="relative aspect-square rounded-xl overflow-hidden border-2 border-green-200 shadow-md hover:shadow-lg transition-all group"
                                     >
                                         <Image
-                                            src={photo}
+                                            src={`/api/photos/${p.id}`}
                                             alt={`Incident photo ${index + 1}`}
                                             fill
+                                            unoptimized
                                             className="object-cover"
                                         />
                                         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />

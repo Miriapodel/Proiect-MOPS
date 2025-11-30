@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/prisma'; // retained for now (will migrate GET fully)
 import { createIncidentSchema } from '@/app/lib/validations/incident';
 import { getCurrentUser } from '@/lib/currentUser';
 import { ZodError } from 'zod';
 import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from '@/lib/config';
+import { createIncident, listIncidents, deleteIncident } from '@/services/incidents.service';
+import { isAppError } from '@/lib/errors';
 
 export async function POST(request: NextRequest) {
   try {
@@ -21,17 +23,14 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validatedData = createIncidentSchema.parse(body);
 
-    const incident = await prisma.incident.create({
-      data: {
-        description: validatedData.description,
-        category: validatedData.category,
-        latitude: validatedData.latitude,
-        longitude: validatedData.longitude,
-        address: validatedData.address || null,
-        photos: validatedData.photos,
-        status: 'PENDING',
-        userId: currentUser.id,
-      },
+    const incident = await createIncident({
+      description: validatedData.description,
+      category: validatedData.category,
+      latitude: validatedData.latitude,
+      longitude: validatedData.longitude,
+      address: validatedData.address || null,
+      photoIds: validatedData.photoIds,
+      userId: currentUser.id,
     });
 
     return NextResponse.json(
@@ -48,9 +47,9 @@ export async function POST(request: NextRequest) {
         {
           success: false,
           error: 'Invalid input data',
-          details: error.issues.map((err) => ({
-            field: err.path.join('.'),
-            message: err.message,
+          details: error.issues.map((issue: any) => ({
+            field: issue.path.join('.'),
+            message: issue.message,
           })),
         },
         { status: 400 }
@@ -85,23 +84,9 @@ export async function GET(request: NextRequest) {
     if (status) where.status = status;
     if (category) where.category = category;
 
-    const [incidents, total] = await prisma.$transaction([
-      prisma.incident.findMany({
-        where,
-        orderBy: { createdAt: 'desc' },
-        skip,
-        take: pageSize,
-        include: {
-          user: {
-            select: { firstName: true, lastName: true, email: true },
-          },
-        },
-      }),
-      prisma.incident.count({ where }),
-    ]);
-
-    const totalPages = Math.max(1, Math.ceil(total / pageSize));
-    return NextResponse.json({ incidents, count: total, page, pageSize, totalPages }, { status: 200 });
+    const statusFilter = (status && ['PENDING', 'IN_PROGRESS', 'RESOLVED', 'REJECTED'].includes(status)) ? status as any : undefined;
+    const { items, total, pages } = await listIncidents({ page, pageSize, status: statusFilter, category: category || undefined });
+    return NextResponse.json({ incidents: items, count: total, page, pageSize, totalPages: pages }, { status: 200 });
   } catch (error) {
     console.error('Error fetching incidents:', error);
     return NextResponse.json(
@@ -137,42 +122,15 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const incident = await prisma.incident.findUnique({
-      where: { id },
-      select: { userId: true },
-    });
-
-    if (!incident) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Incident not found',
-        },
-        { status: 404 }
-      );
+    try {
+      await deleteIncident(id, currentUser.id);
+      return NextResponse.json({ success: true, message: 'Incident deleted successfully' }, { status: 200 });
+    } catch (err) {
+      if (isAppError(err)) {
+        return NextResponse.json({ success: false, error: err.message, code: err.code }, { status: err.status });
+      }
+      throw err;
     }
-
-    if (incident.userId !== currentUser.id) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'You do not have permission to delete this incident',
-        },
-        { status: 403 }
-      );
-    }
-
-    await prisma.incident.delete({
-      where: { id },
-    });
-
-    return NextResponse.json(
-      {
-        success: true,
-        message: 'Incident deleted successfully',
-      },
-      { status: 200 }
-    );
   } catch (error) {
     console.error('Error deleting incident:', error);
     return NextResponse.json(

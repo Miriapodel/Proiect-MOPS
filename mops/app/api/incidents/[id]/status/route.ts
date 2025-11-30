@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/currentUser';
 import { IncidentStatus, Role } from '@/app/generated/prisma';
+import { updateIncidentStatusWithPermission } from '@/services/incidents.service';
+import { isAppError } from '@/lib/errors';
 
 export async function PATCH(
   request: NextRequest,
@@ -22,44 +23,15 @@ export async function PATCH(
       return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
     }
 
-    const incident = await prisma.incident.findUnique({
-      where: { id },
-    });
-
-    if (!incident) {
-      return NextResponse.json({ error: 'Incident not found' }, { status: 404 });
+    try {
+      const updated = await updateIncidentStatusWithPermission(id, user.id, user.role as Role, status as IncidentStatus);
+      return NextResponse.json(updated);
+    } catch (err) {
+      if (isAppError(err)) {
+        return NextResponse.json({ error: err.message, code: err.code }, { status: err.status });
+      }
+      throw err;
     }
-
-    const isAdmin = user.role === Role.ADMIN;
-    const isAssignedOperator =
-      user.role === Role.OPERATOR && incident.assignedToId === user.id;
-
-    if (!isAdmin && !isAssignedOperator) {
-      return NextResponse.json(
-        { error: 'Forbidden: Only Admins or the assigned Operator can update this incident.' },
-        { status: 403 }
-      );
-    }
-
-    const result = await prisma.$transaction(async (tx) => {
-      await tx.incidentHistory.create({
-        data: {
-          incidentId: incident.id,
-          changedById: user.id,
-          oldStatus: incident.status,
-          newStatus: status as IncidentStatus,
-        },
-      });
-
-      const updatedIncident = await tx.incident.update({
-        where: { id: incident.id },
-        data: { status: status as IncidentStatus },
-      });
-
-      return updatedIncident;
-    });
-
-    return NextResponse.json(result);
   } catch (error) {
     console.error('Error updating incident status:', error);
     return NextResponse.json(

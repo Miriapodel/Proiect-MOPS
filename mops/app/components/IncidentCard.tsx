@@ -14,7 +14,7 @@ interface IncidentCardProps {
     latitude: number;
     longitude: number;
     address: string | null;
-    photos: string[];
+    photoIds?: string[];
     createdAt: Date;
     userId: string;
     user: {

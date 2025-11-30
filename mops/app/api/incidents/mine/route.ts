@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
+import { listUserIncidents } from "@/services/incidents.service";
+import { isAppError } from "@/lib/errors";
 import { getCurrentUser } from "@/lib/currentUser";
 import { MAX_PAGE_SIZE, DEFAULT_PAGE_SIZE } from "@/lib/config";
 
@@ -40,37 +41,12 @@ export async function GET(req: NextRequest) {
     const skip = (page - 1) * pageSize;
 
     try {
-        const [items, total] = await prisma.$transaction([
-            prisma.incident.findMany({
-                where: { userId: user.id },
-                orderBy: { createdAt: "desc" },
-                skip,
-                take: pageSize,
-                select: {
-                    id: true,
-                    description: true,
-                    category: true,
-                    status: true,
-                    createdAt: true,
-                    photos: true,
-                    latitude: true,
-                    longitude: true,
-                    address: true,
-                },
-            }),
-            prisma.incident.count({ where: { userId: user.id } }),
-        ]);
-
-        const totalPages = Math.max(1, Math.ceil(total / pageSize));
-        return NextResponse.json({
-            success: true,
-            data: items,
-            page,
-            pageSize,
-            total,
-            totalPages,
-        });
+        const { items, total, pages } = await listUserIncidents(user.id, { page, pageSize });
+        return NextResponse.json({ success: true, data: items, page, pageSize, total, totalPages: pages });
     } catch (e) {
+        if (isAppError(e)) {
+            return NextResponse.json({ error: e.message, code: e.code }, { status: e.status });
+        }
         return NextResponse.json({ error: "Server error" }, { status: 500 });
     }
 }
