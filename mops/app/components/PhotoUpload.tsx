@@ -4,23 +4,23 @@ import { useRef, useState } from 'react';
 import Image from 'next/image';
 
 interface PhotoUploadProps {
-  photos: string[];
-  onPhotosChange: (photos: string[]) => void;
+  photoIds: string[];
+  onPhotoIdsChange: (photoIds: string[]) => void;
   maxPhotos?: number;
 }
 
-export function PhotoUpload({ photos, onPhotosChange, maxPhotos = 3 }: PhotoUploadProps) {
+export function PhotoUpload({ photoIds, onPhotoIdsChange, maxPhotos = 3 }: PhotoUploadProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    
+
     if (files.length === 0) return;
 
     // Check if adding these files would exceed the limit
-    if (photos.length + files.length > maxPhotos) {
+    if (photoIds.length + files.length > maxPhotos) {
       setError(`You can upload a maximum of ${maxPhotos} photos`);
       return;
     }
@@ -54,11 +54,11 @@ export function PhotoUpload({ photos, onPhotosChange, maxPhotos = 3 }: PhotoUplo
         }
 
         const data = await response.json();
-        return data.url;
+        return data.photoId as string;
       });
 
-      const uploadedUrls = await Promise.all(uploadPromises);
-      onPhotosChange([...photos, ...uploadedUrls]);
+      const uploadedIds = await Promise.all(uploadPromises);
+      onPhotoIdsChange([...photoIds, ...uploadedIds]);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error uploading photos');
     } finally {
@@ -70,8 +70,8 @@ export function PhotoUpload({ photos, onPhotosChange, maxPhotos = 3 }: PhotoUplo
   };
 
   const handleRemovePhoto = (index: number) => {
-    const newPhotos = photos.filter((_, i) => i !== index);
-    onPhotosChange(newPhotos);
+    const newIds = photoIds.filter((_, i) => i !== index);
+    onPhotoIdsChange(newIds);
   };
 
   return (
@@ -80,13 +80,13 @@ export function PhotoUpload({ photos, onPhotosChange, maxPhotos = 3 }: PhotoUplo
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
-          disabled={uploading || photos.length >= maxPhotos}
+          disabled={uploading || photoIds.length >= maxPhotos}
           className="btn-primary"
         >
           <span>{uploading ? 'Uploading...' : 'Add photo'}</span>
         </button>
         <span className="photo-counter">
-          {photos.length}/{maxPhotos} photos
+          {photoIds.length}/{maxPhotos} photos
         </span>
       </div>
 
@@ -105,14 +105,15 @@ export function PhotoUpload({ photos, onPhotosChange, maxPhotos = 3 }: PhotoUplo
         </div>
       )}
 
-      {photos.length > 0 && (
+      {photoIds.length > 0 && (
         <div className="photo-grid">
-          {photos.map((photo, index) => (
+          {photoIds.map((id, index) => (
             <div key={index} className="photo-item group">
               <Image
-                src={photo}
+                src={`/api/photos/${id}`}
                 alt={`Photo ${index + 1}`}
                 fill
+                unoptimized
                 className="object-cover"
               />
               <button

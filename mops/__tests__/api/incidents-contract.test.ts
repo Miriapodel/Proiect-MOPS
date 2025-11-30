@@ -10,7 +10,7 @@ describe('Incident API Endpoint Contracts', () => {
         latitude: 45.9432,
         longitude: 24.9668,
         address: 'Brașov, Romania',
-        photos: ['https://example.com/photo1.jpg'],
+        photoIds: ['123e4567-e89b-12d3-a456-426614174000'],
       };
 
       const result = createIncidentSchema.safeParse(validIncident);
@@ -29,7 +29,7 @@ describe('Incident API Endpoint Contracts', () => {
         category: 'Potholes',
         latitude: 45.9432,
         longitude: 24.9668,
-        photos: [],
+        photoIds: [],
       };
 
       const result = createIncidentSchema.safeParse(incident);
@@ -47,7 +47,7 @@ describe('Incident API Endpoint Contracts', () => {
       const result = createIncidentSchema.safeParse(incident);
       expect(result.success).toBe(true);
       if (result.success) {
-        expect(result.data.photos).toEqual([]);
+        expect(result.data.photoIds).toEqual([]);
       }
     });
 
@@ -197,17 +197,17 @@ describe('Incident API Endpoint Contracts', () => {
       });
     });
 
-    it('should reject incident with more than 3 photos', () => {
+    it('should reject incident with more than 3 photoIds', () => {
       const incident = {
         description: 'Test incident description',
         category: 'Street Lighting',
         latitude: 45.9432,
         longitude: 24.9668,
-        photos: [
-          'https://example.com/photo1.jpg',
-          'https://example.com/photo2.jpg',
-          'https://example.com/photo3.jpg',
-          'https://example.com/photo4.jpg',
+        photoIds: [
+          '123e4567-e89b-12d3-a456-426614174000',
+          '123e4567-e89b-12d3-a456-426614174001',
+          '123e4567-e89b-12d3-a456-426614174002',
+          '123e4567-e89b-12d3-a456-426614174003',
         ],
       };
 
@@ -215,16 +215,16 @@ describe('Incident API Endpoint Contracts', () => {
       expect(result.success).toBe(false);
     });
 
-    it('should accept up to 3 photos', () => {
+    it('should accept up to 3 photoIds (UUIDs)', () => {
       const incident = {
         description: 'Test incident description',
         category: 'Street Lighting',
         latitude: 45.9432,
         longitude: 24.9668,
-        photos: [
-          'https://example.com/photo1.jpg',
-          'https://example.com/photo2.jpg',
-          'https://example.com/photo3.jpg',
+        photoIds: [
+          '123e4567-e89b-12d3-a456-426614174000',
+          '123e4567-e89b-12d3-a456-426614174001',
+          '123e4567-e89b-12d3-a456-426614174002',
         ],
       };
 
@@ -232,34 +232,20 @@ describe('Incident API Endpoint Contracts', () => {
       expect(result.success).toBe(true);
     });
 
-    it('should accept relative photo paths', () => {
-      const incident = {
-        description: 'Test incident description',
-        category: 'Street Lighting',
-        latitude: 45.9432,
-        longitude: 24.9668,
-        photos: ['/uploads/photo1.jpg', '/uploads/photo2.jpg'],
-      };
-
-      const result = createIncidentSchema.safeParse(incident);
-      expect(result.success).toBe(true);
-    });
-
-    it('should reject invalid photo URLs', () => {
-      const invalidPhotos = [
-        ['not-a-url'],
-        ['relative/path'],
-        ['../invalid'],
-        ['invalid-url.jpg'],
+    it('should reject invalid photoIds', () => {
+      const invalidSets = [
+        ['not-a-uuid'],
+        ['123'],
+        [''],
       ];
 
-      invalidPhotos.forEach((photos) => {
+      invalidSets.forEach((photoIds) => {
         const incident = {
           description: 'Test incident description',
           category: 'Street Lighting',
           latitude: 45.9432,
           longitude: 24.9668,
-          photos,
+          photoIds,
         };
 
         const result = createIncidentSchema.safeParse(incident);
@@ -303,7 +289,7 @@ describe('Incident API Endpoint Contracts', () => {
   describe('GET /api/incidents - Query Parameters', () => {
     it('should accept valid status filter', () => {
       const validStatuses = ['PENDING', 'IN_PROGRESS', 'RESOLVED', 'REJECTED'];
-      
+
       validStatuses.forEach((status) => {
         expect(validStatuses).toContain(status);
       });
@@ -378,26 +364,26 @@ describe('Incident API Endpoint Contracts', () => {
       });
     });
 
-    it('should enforce maximum 3 photos per incident', () => {
+    it('should enforce maximum 3 photoIds per incident', () => {
       for (let i = 0; i <= 3; i++) {
-        const photos = Array(i).fill('https://example.com/photo.jpg');
+        const photoIds = Array(i).fill('123e4567-e89b-12d3-a456-426614174000');
         const incident = {
           description: 'Test incident description',
           category: 'Street Lighting',
           latitude: 45.9432,
           longitude: 24.9668,
-          photos,
+          photoIds,
         };
         expect(createIncidentSchema.safeParse(incident).success).toBe(true);
       }
 
-      const tooManyPhotos = Array(4).fill('https://example.com/photo.jpg');
+      const tooManyPhotos = Array(4).fill('123e4567-e89b-12d3-a456-426614174000');
       const incident = {
         description: 'Test incident description',
         category: 'Street Lighting',
         latitude: 45.9432,
         longitude: 24.9668,
-        photos: tooManyPhotos,
+        photoIds: tooManyPhotos,
       };
       expect(createIncidentSchema.safeParse(incident).success).toBe(false);
     });
@@ -434,23 +420,15 @@ describe('Incident API Endpoint Contracts', () => {
       expect(now.toISOString()).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
     });
 
-    it('should ensure photo URLs are valid', () => {
-      const validUrls = [
-        'https://example.com/photo.jpg',
-        'http://example.com/photo.png',
-        '/uploads/photo.jpg',
-        '/uploads/subfolder/photo.webp',
+    it('should ensure photoIds match UUID format', () => {
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      const ids = [
+        '123e4567-e89b-12d3-a456-426614174000',
+        'abcd1234-5678-90ab-cdef-1234567890ab',
+        'fedcba98-7654-3210-fedc-ba9876543210',
       ];
-
-      validUrls.forEach((url) => {
-        const incident = {
-          description: 'Test incident description',
-          category: 'Street Lighting',
-          latitude: 45.9432,
-          longitude: 24.9668,
-          photos: [url],
-        };
-        expect(createIncidentSchema.safeParse(incident).success).toBe(true);
+      ids.forEach((id) => {
+        expect(uuidRegex.test(id)).toBe(true);
       });
     });
   });

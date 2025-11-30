@@ -1,19 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/prisma'; // retained for mapping shape; service returns similar rows
 import { getCurrentUser } from '@/lib/currentUser';
 import { ZodError } from 'zod';
 import { createCommentSchema } from '@/app/lib/validations/comment';
+import { listComments, createComment } from '@/services/comments.service';
+import { isAppError } from '@/lib/errors';
 
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
         const { id } = await params;
 
-        const rows = await prisma.comment.findMany({
-            where: { incidentId: id },
-            orderBy: { createdAt: 'asc' },
-            include: { user: { select: { firstName: true, lastName: true } } },
-        });
-
+        const rows = await listComments(id);
         const comments = rows.map((c) => ({
             id: c.id,
             content: c.content,
@@ -45,32 +42,20 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         const body = await request.json();
         const parsed = createCommentSchema.parse(body);
 
-        // ensure incident exists
-        const incident = await prisma.incident.findUnique({ where: { id } });
-        if (!incident) {
-            return NextResponse.json({ error: 'Incident does not exist' }, { status: 404 });
-        }
-
-        // if replying, ensure parent belongs to same incident
-        if (parsed.parentId) {
-            const parent = await prisma.comment.findUnique({
-                where: { id: parsed.parentId },
-                select: { id: true, incidentId: true },
-            });
-            if (!parent || parent.incidentId !== id) {
-                return NextResponse.json({ error: 'Parent comment is invalid' }, { status: 400 });
-            }
-        }
-
-        const createdRow = await prisma.comment.create({
-            data: {
-                content: parsed.content.trim(),
+        let createdRow;
+        try {
+            createdRow = await createComment({
                 incidentId: id,
                 userId: user.id,
+                content: parsed.content.trim(),
                 parentId: parsed.parentId ?? null,
-            },
-            include: { user: { select: { firstName: true, lastName: true } } },
-        });
+            });
+        } catch (err) {
+            if (isAppError(err)) {
+                return NextResponse.json({ success: false, error: err.message, code: err.code }, { status: err.status });
+            }
+            throw err;
+        }
 
         const created = {
             id: createdRow.id,

@@ -13,10 +13,11 @@ async function getIncidents() {
                         lastName: true,
                     },
                 },
+                photos: { select: { id: true } },
             },
             orderBy: { createdAt: 'desc' },
         });
-        
+
         return incidents.map(incident => ({
             ...incident,
             createdAt: incident.createdAt.toISOString(),
