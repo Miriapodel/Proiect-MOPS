@@ -1,53 +1,13 @@
-import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/currentUser';
 import Link from 'next/link';
 import { IncidentCard } from '@/app/components/IncidentCard';
 import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from '@/lib/config';
 import PageSizeSelector from '@/app/components/PageSizeSelector';
 import PaginationControls from '@/app/components/PaginationControls';
+import { listIncidents } from '@/services/incidents.service';
+import { IncidentStatus } from '@/app/generated/prisma';
 
 export const dynamic = 'force-dynamic';
-
-async function getPaginatedIncidents(params: { page: number; pageSize: number; status?: string | null; category?: string | null; }) {
-  const { page, pageSize, status, category } = params;
-  const where: any = {};
-  if (status) where.status = status;
-  if (category) where.category = category;
-
-  const skip = (page - 1) * pageSize;
-
-  const [incidents, total] = await prisma.$transaction([
-    prisma.incident.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-      skip,
-      take: pageSize,
-      include: {
-        user: { select: { firstName: true, lastName: true, email: true } },
-      },
-    }),
-    prisma.incident.count({ where }),
-  ]);
-
-  return { incidents, total };
-}
-
-function getStatusBadge(status: string) {
-  const statusConfig = {
-    PENDING: { label: 'Pending', color: 'bg-yellow-100 text-yellow-800 border-yellow-300' },
-    IN_PROGRESS: { label: 'In Progress', color: 'bg-blue-100 text-blue-800 border-blue-300' },
-    RESOLVED: { label: 'Resolved', color: 'bg-green-100 text-green-800 border-green-300' },
-    REJECTED: { label: 'Rejected', color: 'bg-red-100 text-red-800 border-red-300' },
-  };
-
-  const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.PENDING;
-
-  return (
-    <span className={`px-3 py-1 rounded-full text-xs font-semibold border-2 ${config.color}`}>
-      {config.label}
-    </span>
-  );
-}
 
 export default async function IncidentsPage({ searchParams }: { searchParams?: Promise<{ [key: string]: string | string[] | undefined }> }) {
   const params = await searchParams;
@@ -60,9 +20,13 @@ export default async function IncidentsPage({ searchParams }: { searchParams?: P
   const rawSize = parseInt(pageSizeParam || String(DEFAULT_PAGE_SIZE), 10) || DEFAULT_PAGE_SIZE;
   const pageSize = Math.min(Math.max(1, rawSize), MAX_PAGE_SIZE);
 
-  const { incidents, total } = await getPaginatedIncidents({ page, pageSize, status, category });
+  const { items: incidents, total, pages: totalPages } = await listIncidents({
+    page,
+    pageSize,
+    status: status as IncidentStatus | undefined,
+    category
+  });
   const currentUser = await getCurrentUser();
-  const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   return (
     <div className="page-container">
