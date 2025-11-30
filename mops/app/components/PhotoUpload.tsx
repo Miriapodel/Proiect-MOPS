@@ -4,74 +4,51 @@ import { useRef, useState } from 'react';
 import Image from 'next/image';
 
 interface PhotoUploadProps {
-  photoIds: string[];
-  onPhotoIdsChange: (photoIds: string[]) => void;
+  files: File[];
+  onFilesChange: (files: File[]) => void;
   maxPhotos?: number;
 }
 
-export function PhotoUpload({ photoIds, onPhotoIdsChange, maxPhotos = 3 }: PhotoUploadProps) {
+export function PhotoUpload({ files, onFilesChange, maxPhotos = 3 }: PhotoUploadProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = Array.from(e.target.files || []);
 
-    if (files.length === 0) return;
+    if (selectedFiles.length === 0) return;
 
     // Check if adding these files would exceed the limit
-    if (photoIds.length + files.length > maxPhotos) {
+    if (files.length + selectedFiles.length > maxPhotos) {
       setError(`You can upload a maximum of ${maxPhotos} photos`);
       return;
     }
 
     setError(null);
-    setUploading(true);
 
-    try {
-      const uploadPromises = files.map(async (file) => {
-        // Validate file
-        if (file.size > 5 * 1024 * 1024) {
-          throw new Error('File cannot exceed 5MB');
-        }
-
-        if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
-          throw new Error('Only JPEG, PNG and WebP images are allowed');
-        }
-
-        // Upload file
-        const formData = new FormData();
-        formData.append('file', file);
-
-        const response = await fetch('/api/upload', {
-          method: 'POST',
-          body: formData,
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Upload error');
-        }
-
-        const data = await response.json();
-        return data.photoId as string;
-      });
-
-      const uploadedIds = await Promise.all(uploadPromises);
-      onPhotoIdsChange([...photoIds, ...uploadedIds]);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error uploading photos');
-    } finally {
-      setUploading(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
+    // Validate files
+    for (const file of selectedFiles) {
+      if (file.size > 5 * 1024 * 1024) {
+        setError('File cannot exceed 5MB');
+        return;
       }
+
+      if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+        setError('Only JPEG, PNG and WebP images are allowed');
+        return;
+      }
+    }
+
+    onFilesChange([...files, ...selectedFiles]);
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
   };
 
   const handleRemovePhoto = (index: number) => {
-    const newIds = photoIds.filter((_, i) => i !== index);
-    onPhotoIdsChange(newIds);
+    const newFiles = files.filter((_, i) => i !== index);
+    onFilesChange(newFiles);
   };
 
   return (
@@ -80,13 +57,13 @@ export function PhotoUpload({ photoIds, onPhotoIdsChange, maxPhotos = 3 }: Photo
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
-          disabled={uploading || photoIds.length >= maxPhotos}
+          disabled={files.length >= maxPhotos}
           className="btn-primary"
         >
-          <span>{uploading ? 'Uploading...' : 'Add photo'}</span>
+          <span>Add photo</span>
         </button>
         <span className="photo-counter">
-          {photoIds.length}/{maxPhotos} photos
+          {files.length}/{maxPhotos} photos
         </span>
       </div>
 
@@ -105,12 +82,12 @@ export function PhotoUpload({ photoIds, onPhotoIdsChange, maxPhotos = 3 }: Photo
         </div>
       )}
 
-      {photoIds.length > 0 && (
+      {files.length > 0 && (
         <div className="photo-grid">
-          {photoIds.map((id, index) => (
+          {files.map((file, index) => (
             <div key={index} className="photo-item group">
               <Image
-                src={`/api/photos/${id}`}
+                src={URL.createObjectURL(file)}
                 alt={`Photo ${index + 1}`}
                 fill
                 unoptimized

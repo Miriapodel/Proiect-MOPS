@@ -5,19 +5,11 @@ import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import PaginationControls from "@/app/components/PaginationControls";
 import PageSizeSelector from "@/app/components/PageSizeSelector";
+import { IncidentCard } from "@/app/components/IncidentCard";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
-function getStatusBadge(status: string) {
-    const config: Record<string, { label: string; color: string }> = {
-        PENDING: { label: "Pending", color: "bg-yellow-100 text-yellow-800 border-yellow-300" },
-        IN_PROGRESS: { label: "In Progress", color: "bg-blue-100 text-blue-800 border-blue-300" },
-        RESOLVED: { label: "Resolved", color: "bg-green-100 text-green-800 border-green-300" },
-        REJECTED: { label: "Rejected", color: "bg-red-100 text-red-800 border-red-300" },
-    };
-    const c = config[status] || config.PENDING;
-    return <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${c.color}`}>{c.label}</span>;
-}
+// Using shared IncidentCard component for consistent UI
 
 export default function MyIncidentsPage() {
     const searchParams = useSearchParams();
@@ -73,43 +65,11 @@ export default function MyIncidentsPage() {
                         You have no reported incidents.
                     </div>
                 ) : (
-                    <ul className="space-y-4">
+                    <div className="grid gap-6">
                         {incidents.map((inc) => (
-                            <li key={inc.id} className="bg-white rounded-2xl shadow-lg p-6 border-2 border-green-100 hover:shadow-xl transition-shadow">
-                                <div className="flex items-start justify-between gap-4 pb-4 border-b border-gray-100">
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-3 mb-2">
-                                            <h3 className="text-lg font-semibold text-gray-900 leading-snug truncate">
-                                                <Link href={`/incidents/${inc.id}?returnTo=${encodeURIComponent(`/incidents/mine${searchParams.toString() ? `?${searchParams.toString()}` : ''}`)}`} className="hover:underline hover:text-green-800">
-                                                    {inc.description}
-                                                </Link>
-                                            </h3>
-                                            {getStatusBadge(inc.status)}
-                                        </div>
-                                        <div className="flex items-center gap-2 mb-2">
-                                            <span className="inline-block px-2 py-0.5 text-xs font-semibold rounded-full bg-gray-100 text-gray-700 border border-gray-200">
-                                                {inc.category}
-                                            </span>
-                                        </div>
-                                        {inc.address && (
-                                            <p className="text-sm text-gray-600">📍 Address: {inc.address}</p>
-                                        )}
-                                        <p className="text-xs text-gray-500 mt-1">
-                                            Submitted at: {new Date(inc.createdAt).toLocaleString()}
-                                        </p>
-                                    </div>
-                                    <div className="shrink-0 flex items-center">
-                                        <Link
-                                            href={`/incidents/${inc.id}?returnTo=${encodeURIComponent(`/incidents/mine${searchParams.toString() ? `?${searchParams.toString()}` : ''}`)}`}
-                                            className="px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-semibold hover:bg-green-700"
-                                        >
-                                            Details
-                                        </Link>
-                                    </div>
-                                </div>
-                            </li>
+                            <IncidentCard key={inc.id} incident={inc} currentUserId={inc.userId} />
                         ))}
-                    </ul>
+                    </div>
                 )}
 
                 <div className="mt-6 flex items-center justify-center gap-4">

@@ -33,6 +33,8 @@ export function CreateIncidentForm({ onSuccess }: CreateIncidentFormProps) {
   const [addressSearchTimeout, setAddressSearchTimeout] = useState<NodeJS.Timeout | null>(null);
   const [mapLoadError, setMapLoadError] = useState(false);
 
+  const [photoFiles, setPhotoFiles] = useState<File[]>([]);
+
   const {
     register,
     handleSubmit,
@@ -52,8 +54,6 @@ export function CreateIncidentForm({ onSuccess }: CreateIncidentFormProps) {
       photoIds: [],
     },
   });
-
-  const photoIds = watch('photoIds');
   const latitude = watch('latitude');
   const longitude = watch('longitude');
   const address = watch('address');
@@ -121,12 +121,45 @@ export function CreateIncidentForm({ onSuccess }: CreateIncidentFormProps) {
     setSubmitSuccess(false);
 
     try {
+      // Step 1: Upload photos first
+      let photoIds: string[] = [];
+
+      if (photoFiles.length > 0) {
+        try {
+          const uploadPromises = photoFiles.map(async (file) => {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const response = await fetch('/api/upload', {
+              method: 'POST',
+              body: formData,
+            });
+
+            if (!response.ok) {
+              const errorData = await response.json();
+              throw new Error(errorData.error || 'Upload failed');
+            }
+
+            const result = await response.json();
+            return result.photoId as string;
+          });
+
+          photoIds = await Promise.all(uploadPromises);
+        } catch (uploadErr) {
+          throw new Error(`Photo upload failed: ${uploadErr instanceof Error ? uploadErr.message : 'Unknown error'}`);
+        }
+      }
+
+      // Step 2: Create incident with uploaded photo IDs
       const response = await fetch('/api/incidents', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          ...data,
+          photoIds,
+        }),
       });
 
       const result = await response.json();
@@ -145,6 +178,7 @@ export function CreateIncidentForm({ onSuccess }: CreateIncidentFormProps) {
       // Reset form
       setValue('description', '');
       setValue('photoIds', []);
+      setPhotoFiles([]);
 
       if (onSuccess) {
         onSuccess(result.incident.id);
@@ -250,12 +284,12 @@ export function CreateIncidentForm({ onSuccess }: CreateIncidentFormProps) {
           Photos (max 3)
         </label>
         <PhotoUpload
-          photoIds={photoIds as unknown as string[]}
-          onPhotoIdsChange={(newIds) => setValue('photoIds', newIds)}
+          files={photoFiles}
+          onFilesChange={setPhotoFiles}
           maxPhotos={3}
         />
-        {(errors as any).photoIds && (
-          <p className="form-error">{(errors as any).photoIds.message}</p>
+        {photoFiles.length > 3 && (
+          <p className="form-error">You can upload a maximum of 3 photos</p>
         )}
       </div>
 
