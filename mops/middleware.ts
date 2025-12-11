@@ -19,7 +19,7 @@ export async function middleware(req: NextRequest) {
                 await verifySession(token);
                 return NextResponse.redirect(new URL("/", req.url));
             } catch {
-    
+
             }
         }
         return NextResponse.next();
