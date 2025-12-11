@@ -25,7 +25,16 @@ export async function middleware(req: NextRequest) {
         return NextResponse.next();
     }
 
-    const publicRoutes = ["/login", "/register", "/api/auth/login", "/api/auth/register"];
+    const publicRoutes = [
+        "/login",
+        "/register",
+        "/request-reset",
+        "/reset-password",
+        "/api/auth/login",
+        "/api/auth/register",
+        "/api/auth/request-reset",
+        "/api/auth/reset-password"
+    ];
     if (publicRoutes.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
         return NextResponse.next();
     }
