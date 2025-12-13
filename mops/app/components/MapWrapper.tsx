@@ -18,7 +18,7 @@ interface Incident {
     latitude: number;
     longitude: number;
     address: string | null;
-    photos: string[];
+    photos: { id: string }[];
     status: string;
     createdAt: string;
     user: {

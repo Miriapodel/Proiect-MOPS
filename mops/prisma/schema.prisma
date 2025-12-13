@@ -97,6 +97,10 @@ model Users {
   email     String   @unique
   password  String
   role      Role     @default(USER)
+
+  resetToken       String?   @unique
+  resetTokenExpiry DateTime?
+
   incidents Incident[] @relation("UserIncidents")
   assignedIncidents Incident[] @relation("AssignedIncidents")
 

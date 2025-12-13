@@ -36,12 +36,12 @@ if (typeof global.Headers === 'undefined') {
       this.set(name.toLowerCase(), value);
     }
     
-    delete(name: string) {
-      super.delete(name.toLowerCase());
+    delete(name: string): boolean {
+      return super.delete(name.toLowerCase());
     }
     
-    get(name: string) {
-      return super.get(name.toLowerCase()) || null;
+    get(name: string): string | undefined {
+      return super.get(name.toLowerCase()) || undefined;
     }
     
     has(name: string) {

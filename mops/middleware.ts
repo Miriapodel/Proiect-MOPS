@@ -19,13 +19,22 @@ export async function middleware(req: NextRequest) {
                 await verifySession(token);
                 return NextResponse.redirect(new URL("/", req.url));
             } catch {
-    
+
             }
         }
         return NextResponse.next();
     }
 
-    const publicRoutes = ["/login", "/register", "/api/auth/login", "/api/auth/register"];
+    const publicRoutes = [
+        "/login",
+        "/register",
+        "/request-reset",
+        "/reset-password",
+        "/api/auth/login",
+        "/api/auth/register",
+        "/api/auth/request-reset",
+        "/api/auth/reset-password"
+    ];
     if (publicRoutes.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
         return NextResponse.next();
     }
