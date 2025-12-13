@@ -15,13 +15,14 @@ model Incident {
   latitude    Float
   longitude   Float
   address     String?
-  photos      String[] // Array of photo URLs/paths
+  photos      Photo[]
   status      IncidentStatus @default(PENDING)
   userId      String   // The user who reported the incident
   user        Users    @relation("UserIncidents", fields: [userId], references: [id], onDelete: Cascade)
   assignedToId String?
   assignedTo   Users?   @relation("AssignedIncidents", fields: [assignedToId], references: [id])
   history     IncidentHistory[]
+  comments    Comment[]
   
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -29,6 +30,20 @@ model Incident {
   @@index([status])
   @@index([createdAt])
   @@index([userId])
+}
+
+model Photo {
+  id         String   @id @default(uuid())
+  incidentId String?
+  incident   Incident? @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  mimeType   String
+  size       Int
+  data       Bytes
+
+  createdAt  DateTime @default(now())
+
+  @@index([incidentId])
 }
 
 model IncidentHistory {
@@ -69,7 +84,31 @@ model Users {
   assignedIncidents Incident[] @relation("AssignedIncidents")
 
   historyChanges    IncidentHistory[]
+  comments          Comment[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Comment {
+  id         String   @id @default(uuid())
+  incidentId String
+  incident   Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  userId     String
+  user       Users    @relation(fields: [userId], references: [id])
+
+  parentId   String?
+  parent     Comment? @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies    Comment[] @relation("CommentReplies")
+
+  content    String
+  deletedAt  DateTime?
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([incidentId])
+  @@index([parentId])
+  @@index([createdAt])
 }

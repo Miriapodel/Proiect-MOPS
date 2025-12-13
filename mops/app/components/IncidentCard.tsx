@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
 interface IncidentCardProps {
@@ -14,7 +14,7 @@ interface IncidentCardProps {
     latitude: number;
     longitude: number;
     address: string | null;
-    photos: string[];
+    photoIds?: string[];
     createdAt: Date;
     userId: string;
     user: {
@@ -35,7 +35,7 @@ function getStatusBadge(status: string) {
   };
 
   const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.PENDING;
-  
+
   return (
     <span className={`px-3 py-1 rounded-full text-xs font-semibold border-2 ${config.color}`}>
       {config.label}
@@ -48,6 +48,8 @@ export function IncidentCard({ incident, currentUserId }: IncidentCardProps) {
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
 
   const isOwner = currentUserId === incident.userId;
 
@@ -76,18 +78,21 @@ export function IncidentCard({ incident, currentUserId }: IncidentCardProps) {
 
   return (
     <div className="bg-white rounded-2xl shadow-lg p-6 border-2 border-green-100 hover:shadow-xl transition-shadow">
-      {/* Header */}
-      <div className="flex items-start justify-between mb-4 pb-4 border-b-2 border-gray-100">
+      {/* Header-only card for list view */}
+      <div className="flex items-start justify-between">
         <div className="flex-1">
           <div className="flex items-center gap-3 mb-2">
-           <h2 className="text-lg font-semibold text-gray-900 leading-snug">
-            <Link
-              href={`/incidents/${incident.id}`}
-              className="hover:underline hover:text-green-800"
-            >
-              {incident.description}
-            </Link>
-          </h2>
+            <h2 className="text-lg font-semibold text-gray-900 leading-snug">
+              <Link
+                href={`/incidents/${incident.id}?returnTo=${encodeURIComponent(`${pathname || '/incidents'}${searchParams?.toString() ? `?${searchParams.toString()}` : ''}`)}`}
+                className="hover:underline hover:text-green-800"
+              >
+                {incident.description}
+              </Link>
+            </h2>
+            <span className="inline-block px-3 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-700 border border-gray-200">
+              {incident.category}
+            </span>
             {getStatusBadge(incident.status)}
           </div>
           <p className="text-sm text-gray-600 mb-1">
@@ -145,67 +150,12 @@ export function IncidentCard({ incident, currentUserId }: IncidentCardProps) {
 
       {/* Delete Error */}
       {deleteError && (
-        <div className="mb-4 p-3 bg-red-50 border-2 border-red-200 rounded-lg">
+        <div className="mt-4 p-3 bg-red-50 border-2 border-red-200 rounded-lg">
           <p className="text-sm text-red-700">
             <span className="font-semibold">Error:</span> {deleteError}
           </p>
         </div>
       )}
-
-      {/* Description */}
-      <div className="mb-4">
-        <h3 className="text-sm font-semibold text-gray-700 mb-2">Description:</h3>
-        <p className="text-gray-800 leading-relaxed bg-gray-50 p-4 rounded-lg">
-          {incident.description}
-        </p>
-      </div>
-
-      {/* Location */}
-      <div className="mb-4">
-        <h3 className="text-sm font-semibold text-gray-700 mb-2">Location:</h3>
-        <div className="bg-gray-50 p-4 rounded-lg space-y-1">
-          {incident.address && (
-            <p className="text-gray-800">
-              📍 {incident.address}
-            </p>
-          )}
-          <p className="text-sm text-gray-600 font-mono">
-            Coordinates: {incident.latitude.toFixed(6)}, {incident.longitude.toFixed(6)}
-          </p>
-        </div>
-      </div>
-
-      {/* Photos */}
-      {incident.photos.length > 0 && (
-        <div>
-          <h3 className="text-sm font-semibold text-gray-700 mb-3">
-            Photos ({incident.photos.length}):
-          </h3>
-          <div className="grid grid-cols-3 gap-4">
-            {incident.photos.map((photo, index) => (
-              <div
-                key={index}
-                className="relative aspect-square rounded-xl overflow-hidden border-2 border-green-200 shadow-md hover:shadow-lg transition-all group"
-              >
-                <Image
-                  src={photo}
-                  alt={`Photo ${index + 1}`}
-                  fill
-                  className="object-cover"
-                />
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Footer */}
-      <div className="mt-4 pt-4 border-t-2 border-gray-100">
-        <p className="text-xs text-gray-500">
-          ID: {incident.id}
-        </p>
-      </div>
     </div>
   );
 }

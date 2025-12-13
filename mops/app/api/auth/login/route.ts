@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { loginSchema } from "@/lib/validators";
-import { findUserByEmail, verifyPassword } from "@/lib/auth";
+import { requireUserByEmail, verifyPassword } from "@/lib/auth";
+import { isAppError } from "@/lib/errors";
 import { createSession, cookieName, cookieOptions } from "@/lib/cookies";
 
 export async function POST(req: Request) {
@@ -12,9 +13,14 @@ export async function POST(req: Request) {
 
   const { email, password } = parsed.data;
 
-  const user = await findUserByEmail(email);
-  if (!user) {
-    return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
+  let user;
+  try {
+    user = await requireUserByEmail(email);
+  } catch (err) {
+    if (isAppError(err)) {
+      return NextResponse.json({ error: "Invalid credentials", code: err.code }, { status: 401 });
+    }
+    return NextResponse.json({ error: "Login failed" }, { status: 500 });
   }
 
   const ok = await verifyPassword(password, user.password);

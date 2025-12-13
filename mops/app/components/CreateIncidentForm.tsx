@@ -33,6 +33,8 @@ export function CreateIncidentForm({ onSuccess }: CreateIncidentFormProps) {
   const [addressSearchTimeout, setAddressSearchTimeout] = useState<NodeJS.Timeout | null>(null);
   const [mapLoadError, setMapLoadError] = useState(false);
 
+  const [photoFiles, setPhotoFiles] = useState<File[]>([]);
+
   const {
     register,
     handleSubmit,
@@ -49,11 +51,9 @@ export function CreateIncidentForm({ onSuccess }: CreateIncidentFormProps) {
       latitude: 45.9432, // Brașov, Romania default
       longitude: 24.9668,
       address: '',
-      photos: [],
+      photoIds: [],
     },
   });
-
-  const photos = watch('photos');
   const latitude = watch('latitude');
   const longitude = watch('longitude');
   const address = watch('address');
@@ -74,12 +74,12 @@ export function CreateIncidentForm({ onSuccess }: CreateIncidentFormProps) {
     const timeout = setTimeout(async () => {
       setLoadingAddress(true);
       const coords = await forwardGeocode(newAddress);
-      
+
       if (coords) {
         setValue('latitude', coords.latitude);
         setValue('longitude', coords.longitude);
       }
-      
+
       setLoadingAddress(false);
     }, 1000); // Wait 1 second after user stops typing
 
@@ -121,12 +121,45 @@ export function CreateIncidentForm({ onSuccess }: CreateIncidentFormProps) {
     setSubmitSuccess(false);
 
     try {
+      // Step 1: Upload photos first
+      let photoIds: string[] = [];
+
+      if (photoFiles.length > 0) {
+        try {
+          const uploadPromises = photoFiles.map(async (file) => {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const response = await fetch('/api/upload', {
+              method: 'POST',
+              body: formData,
+            });
+
+            if (!response.ok) {
+              const errorData = await response.json();
+              throw new Error(errorData.error || 'Upload failed');
+            }
+
+            const result = await response.json();
+            return result.photoId as string;
+          });
+
+          photoIds = await Promise.all(uploadPromises);
+        } catch (uploadErr) {
+          throw new Error(`Photo upload failed: ${uploadErr instanceof Error ? uploadErr.message : 'Unknown error'}`);
+        }
+      }
+
+      // Step 2: Create incident with uploaded photo IDs
       const response = await fetch('/api/incidents', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          ...data,
+          photoIds,
+        }),
       });
 
       const result = await response.json();
@@ -141,11 +174,12 @@ export function CreateIncidentForm({ onSuccess }: CreateIncidentFormProps) {
       }
 
       setSubmitSuccess(true);
-      
+
       // Reset form
       setValue('description', '');
-      setValue('photos', []);
-      
+      setValue('photoIds', []);
+      setPhotoFiles([]);
+
       if (onSuccess) {
         onSuccess(result.incident.id);
       }
@@ -164,7 +198,7 @@ export function CreateIncidentForm({ onSuccess }: CreateIncidentFormProps) {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="incident-form" noValidate>
- 
+
 
       {/* Success Message */}
       {submitSuccess && (
@@ -250,12 +284,12 @@ export function CreateIncidentForm({ onSuccess }: CreateIncidentFormProps) {
           Photos (max 3)
         </label>
         <PhotoUpload
-          photos={photos}
-          onPhotosChange={(newPhotos) => setValue('photos', newPhotos)}
+          files={photoFiles}
+          onFilesChange={setPhotoFiles}
           maxPhotos={3}
         />
-        {errors.photos && (
-          <p className="form-error">{errors.photos.message}</p>
+        {photoFiles.length > 3 && (
+          <p className="form-error">You can upload a maximum of 3 photos</p>
         )}
       </div>
 
@@ -264,7 +298,7 @@ export function CreateIncidentForm({ onSuccess }: CreateIncidentFormProps) {
         <label className="form-label">
           Location <span className="form-label-required">*</span>
         </label>
-        
+
         {!mapLoadError ? (
           <div className="relative">
             <MapPicker
@@ -326,7 +360,7 @@ export function CreateIncidentForm({ onSuccess }: CreateIncidentFormProps) {
             </div>
           </div>
         )}
-        
+
         {(errors.latitude || errors.longitude) && (
           <p className="form-error">Select a valid location on the map or enter valid coordinates</p>
         )}

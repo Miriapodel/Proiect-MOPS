@@ -9,7 +9,7 @@ describe('Incident Validation Schema', () => {
       latitude: 45.9432,
       longitude: 24.9668,
       address: 'Brașov, Romania',
-      photos: ['https://example.com/photo1.jpg'],
+      photoIds: ['123e4567-e89b-12d3-a456-426614174000'],
     };
 
     it('should validate a correct incident', () => {
@@ -134,58 +134,55 @@ describe('Incident Validation Schema', () => {
       });
     });
 
-    describe('photos validation', () => {
-      it('should accept empty photos array', () => {
-        const incident = { ...validIncident, photos: [] };
+    describe('photoIds validation', () => {
+      it('should accept empty photoIds array', () => {
+        const incident = { ...validIncident, photoIds: [] };
         const result = createIncidentSchema.safeParse(incident);
         expect(result.success).toBe(true);
       });
 
-      it('should accept up to 3 photos', () => {
+      it('should accept up to 3 UUID photoIds', () => {
         const incident = {
           ...validIncident,
-          photos: [
-            'https://example.com/photo1.jpg',
-            'https://example.com/photo2.jpg',
-            'https://example.com/photo3.jpg',
+          photoIds: [
+            '123e4567-e89b-12d3-a456-426614174000',
+            '123e4567-e89b-12d3-a456-426614174001',
+            '123e4567-e89b-12d3-a456-426614174002',
           ],
         };
         const result = createIncidentSchema.safeParse(incident);
         expect(result.success).toBe(true);
       });
 
-      it('should reject more than 3 photos', () => {
+      it('should reject more than 3 photoIds', () => {
         const incident = {
           ...validIncident,
-          photos: [
-            'https://example.com/photo1.jpg',
-            'https://example.com/photo2.jpg',
-            'https://example.com/photo3.jpg',
-            'https://example.com/photo4.jpg',
+          photoIds: [
+            '123e4567-e89b-12d3-a456-426614174000',
+            '123e4567-e89b-12d3-a456-426614174001',
+            '123e4567-e89b-12d3-a456-426614174002',
+            '123e4567-e89b-12d3-a456-426614174003',
           ],
         };
         const result = createIncidentSchema.safeParse(incident);
         expect(result.success).toBe(false);
         if (!result.success) {
-          expect(result.error.issues[0].message).toContain('3 photos');
+          expect(result.error.issues[0].message).toContain('maximum of 3 photos');
         }
       });
 
-      it('should reject invalid URLs', () => {
-        const incident = { ...validIncident, photos: ['not-a-url'] };
+      it('should reject invalid UUIDs', () => {
+        const incident = { ...validIncident, photoIds: ['not-a-uuid'] };
         const result = createIncidentSchema.safeParse(incident);
         expect(result.success).toBe(false);
-        if (!result.success) {
-          expect(result.error.issues[0].message).toContain('Invalid photo URL');
-        }
       });
 
       it('should default to empty array if not provided', () => {
-        const { photos, ...incidentWithoutPhotos } = validIncident;
-        const result = createIncidentSchema.safeParse(incidentWithoutPhotos);
+        const { photoIds, ...incidentWithoutPhotoIds } = validIncident as any;
+        const result = createIncidentSchema.safeParse(incidentWithoutPhotoIds);
         expect(result.success).toBe(true);
         if (result.success) {
-          expect(result.data.photos).toEqual([]);
+          expect(result.data.photoIds).toEqual([]);
         }
       });
     });
@@ -294,8 +291,8 @@ describe('Incident Validation Schema', () => {
         expect(result.success).toBe(false);
       });
 
-      it('should reject string photos instead of array', () => {
-        const incident = { ...baseIncident, photos: 'not-an-array' };
+      it('should reject string photoIds instead of array', () => {
+        const incident = { ...baseIncident, photoIds: 'not-an-array' } as any;
         const result = createIncidentSchema.safeParse(incident);
         expect(result.success).toBe(false);
       });
@@ -374,7 +371,7 @@ describe('Incident Validation Schema', () => {
     });
   });
 
-  describe('Edge Cases - Photos Array', () => {
+  describe('Edge Cases - photoIds Array', () => {
     const baseIncident = {
       description: 'Test incident description',
       category: 'Street Lighting' as const,
@@ -382,71 +379,36 @@ describe('Incident Validation Schema', () => {
       longitude: 24.9668,
     };
 
-    it('should reject photos array with null elements', () => {
-      const incident = { ...baseIncident, photos: [null] };
+    it('should reject photoIds array with null elements', () => {
+      const incident = { ...baseIncident, photoIds: [null] } as any;
       const result = createIncidentSchema.safeParse(incident);
       expect(result.success).toBe(false);
     });
 
-    it('should reject photos array with undefined elements', () => {
-      const incident = { ...baseIncident, photos: [undefined] };
+    it('should reject photoIds array with undefined elements', () => {
+      const incident = { ...baseIncident, photoIds: [undefined] } as any;
       const result = createIncidentSchema.safeParse(incident);
       expect(result.success).toBe(false);
     });
 
-    it('should reject photos array with empty strings', () => {
-      const incident = { ...baseIncident, photos: [''] };
+    it('should reject photoIds array with empty strings', () => {
+      const incident = { ...baseIncident, photoIds: [''] };
       const result = createIncidentSchema.safeParse(incident);
       expect(result.success).toBe(false);
     });
 
-    it('should reject photos array with number elements', () => {
-      const incident = { ...baseIncident, photos: [1, 2, 3] as any };
+    it('should reject photoIds array with number elements', () => {
+      const incident = { ...baseIncident, photoIds: [1, 2, 3] as any };
       const result = createIncidentSchema.safeParse(incident);
       expect(result.success).toBe(false);
     });
 
-    it('should reject photos array with object elements', () => {
-      const incident = { ...baseIncident, photos: [{ url: '/test' }] as any };
+    it('should reject photoIds array with object elements', () => {
+      const incident = { ...baseIncident, photoIds: [{ id: 'x' }] as any };
       const result = createIncidentSchema.safeParse(incident);
       expect(result.success).toBe(false);
     });
-
-    it('should reject incomplete URLs', () => {
-      const incident = { ...baseIncident, photos: ['http://'] };
-      const result = createIncidentSchema.safeParse(incident);
-      expect(result.success).toBe(false);
-    });
-
-    it('should reject URLs with path traversal', () => {
-      const incident = { ...baseIncident, photos: ['/uploads/../../../etc/passwd'] };
-      const result = createIncidentSchema.safeParse(incident);
-      expect(result.success).toBe(false);
-    });
-
-    it('should reject javascript: protocol URLs', () => {
-      const incident = { ...baseIncident, photos: ['javascript:alert(1)'] };
-      const result = createIncidentSchema.safeParse(incident);
-      expect(result.success).toBe(false);
-    });
-
-    it('should accept mix of http and relative URLs', () => {
-      const incident = { 
-        ...baseIncident, 
-        photos: ['https://example.com/photo.jpg', '/uploads/photo.jpg'] 
-      };
-      const result = createIncidentSchema.safeParse(incident);
-      expect(result.success).toBe(true);
-    });
-
-    it('should accept photos with query parameters', () => {
-      const incident = { 
-        ...baseIncident, 
-        photos: ['https://example.com/photo.jpg?size=large&quality=high'] 
-      };
-      const result = createIncidentSchema.safeParse(incident);
-      expect(result.success).toBe(true);
-    });
+    // URL-specific tests removed as we now store photo IDs (UUIDs)
   });
 
   describe('Edge Cases - Category Validation', () => {
