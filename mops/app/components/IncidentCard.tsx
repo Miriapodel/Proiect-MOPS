@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -15,6 +15,7 @@ interface IncidentCardProps {
     longitude: number;
     address: string | null;
     photoIds?: string[];
+    upvotes?: number;
     createdAt: Date;
     userId: string;
     user: {
@@ -24,6 +25,7 @@ interface IncidentCardProps {
     };
   };
   currentUserId?: string;
+  onUpvote?: (incidentId: string, newUpvotes: number) => void;
 }
 
 function getStatusBadge(status: string) {
@@ -43,7 +45,10 @@ function getStatusBadge(status: string) {
   );
 }
 
-export function IncidentCard({ incident, currentUserId }: IncidentCardProps) {
+export function IncidentCard({ incident, currentUserId, onUpvote }: IncidentCardProps) {
+  const [upvotes, setUpvotes] = useState<number>(incident.upvotes ?? 0);
+  const [hasVoted, setHasVoted] = useState(false);
+  const [isVoting, setIsVoting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -52,6 +57,25 @@ export function IncidentCard({ incident, currentUserId }: IncidentCardProps) {
   const pathname = usePathname();
 
   const isOwner = currentUserId === incident.userId;
+
+  // Load voted state from server on mount
+  useEffect(() => {
+    if (!currentUserId) return;
+
+    const checkVoteStatus = async () => {
+      try {
+        const res = await fetch(`/api/incidents/vote-status?incidentId=${incident.id}`);
+        if (res.ok) {
+          const data = await res.json();
+          setHasVoted(data.hasVoted);
+        }
+      } catch (e) {
+        console.error('Error checking vote status', e);
+      }
+    };
+
+    checkVoteStatus();
+  }, [incident.id, currentUserId]);
 
   const handleDelete = async () => {
     setIsDeleting(true);
@@ -73,6 +97,31 @@ export function IncidentCard({ incident, currentUserId }: IncidentCardProps) {
     } catch (err) {
       setDeleteError(err instanceof Error ? err.message : 'An error occurred');
       setIsDeleting(false);
+    }
+  };
+
+  const handleUpvote = async () => {
+    if (!currentUserId || isVoting) return;
+    setIsVoting(true);
+    try {
+      const res = await fetch('/api/incidents/upvote', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ incidentId: incident.id }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setUpvotes(data.upvotes);
+        setHasVoted(data.hasVoted);
+        // Notify parent to re-sort the list
+        if (onUpvote) {
+          onUpvote(incident.id, data.upvotes);
+        }
+      }
+    } catch (e) {
+      console.error('Upvote error', e);
+    } finally {
+      setIsVoting(false);
     }
   };
 
@@ -145,6 +194,22 @@ export function IncidentCard({ incident, currentUserId }: IncidentCardProps) {
               </div>
             )}
           </div>
+        )}
+        {!isOwner && (
+          <button
+            onClick={handleUpvote}
+            disabled={!currentUserId || isVoting}
+            className={`ml-4 flex items-center gap-2 px-4 py-2 rounded-lg transition-colors text-sm font-semibold ${
+              hasVoted
+                ? 'bg-green-600 text-white hover:bg-green-700'
+                : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
+            } disabled:opacity-50 disabled:cursor-not-allowed`}
+          >
+            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M2 10.5a1.5 1.5 0 113 0v-7a1.5 1.5 0 01-3 0v7zM14.666 2.045a1.5 1.5 0 00-2.666 1.299V15.5h3.5a1.5 1.5 0 001.5-1.5V3.5a1.5 1.5 0 00-2.334-1.455z" />
+            </svg>
+            {hasVoted ? 'Remove upvote' : 'Upvote'} ({upvotes})
+          </button>
         )}
       </div>
 

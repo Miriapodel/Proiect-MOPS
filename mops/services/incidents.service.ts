@@ -37,7 +37,7 @@ export async function listIncidents(params: ListIncidentsParams = {}) {
             where,
             skip: (page - 1) * pageSize,
             take: pageSize,
-            orderBy: { createdAt: "desc" },
+            orderBy: [{ upvotes: "desc" }, { createdAt: "desc" }],
             include: { user: { select: { firstName: true, lastName: true, email: true } }, photos: { select: { id: true } } },
         }),
         prisma.incident.count({ where }),
@@ -230,4 +230,60 @@ export async function exportIncidents(params: ExportIncidentsParams = {}) {
     }));
 
     return formattedIncidents;
+}
+
+export async function upvoteIncident(incidentId: string, userId: string) {
+    return prisma.$transaction(async (tx) => {
+        // Check if already voted
+        const existing = await tx.incidentVote.findUnique({
+            where: { incidentId_userId: { incidentId, userId } },
+        });
+
+        if (existing) {
+            // Remove the upvote
+            await tx.incidentVote.delete({
+                where: { incidentId_userId: { incidentId, userId } },
+            });
+
+            const updated = await tx.incident.update({
+                where: { id: incidentId },
+                data: { upvotes: { decrement: 1 } },
+                select: { upvotes: true },
+            });
+
+            return { upvotes: updated.upvotes, hasVoted: false };
+        }
+
+        // Add the upvote
+        await tx.incidentVote.create({
+            data: {
+                incidentId,
+                userId,
+            },
+        });
+
+        const updated = await tx.incident.update({
+            where: { id: incidentId },
+            data: { upvotes: { increment: 1 } },
+            select: { upvotes: true },
+        });
+
+        return { upvotes: updated.upvotes, hasVoted: true };
+    });
+}
+
+export async function listTrendingIncidents(limit = 10) {
+    const incidents = await prisma.incident.findMany({
+        orderBy: [
+            { upvotes: "desc" },
+            { createdAt: "desc" },
+        ],
+        take: limit,
+        include: {
+            user: { select: { firstName: true, lastName: true, email: true } },
+            photos: { select: { id: true } },
+        },
+    });
+
+    return incidents;
 }

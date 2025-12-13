@@ -1,10 +1,10 @@
 import { getCurrentUser } from '@/lib/currentUser';
 import Link from 'next/link';
-import { IncidentCard } from '@/app/components/IncidentCard';
 import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from '@/lib/config';
 import PageSizeSelector from '@/app/components/PageSizeSelector';
 import PaginationControls from '@/app/components/PaginationControls';
 import ExportButton from '@/app/components/ExportButton';
+import { IncidentsList } from '@/app/components/IncidentsList';
 import { listIncidents } from '@/services/incidents.service';
 import { IncidentStatus } from '@/app/generated/prisma';
 
@@ -72,15 +72,7 @@ export default async function IncidentsPage({ searchParams }: { searchParams?: P
               </p>
             </div>
 
-            <div className="grid gap-6">
-              {incidents.map((incident) => (
-                <IncidentCard
-                  key={incident.id}
-                  incident={incident}
-                  currentUserId={currentUser?.id}
-                />
-              ))}
-            </div>
+            <IncidentsList incidents={incidents} currentUserId={currentUser?.id} />
 
             <div className="flex items-center justify-center gap-4">
               <PaginationControls page={page} totalPages={totalPages} />
