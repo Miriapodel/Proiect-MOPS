@@ -171,7 +171,7 @@ export async function searchIncidents(query: string, limit: number = 50) {
             ],
         },
         take: limit,
-        orderBy: { createdAt: "desc" },
+        orderBy: [{ upvotes: "desc" }, { createdAt: "desc" }],
         include: {
             user: { select: { firstName: true, lastName: true, email: true } },
             photos: { select: { id: true } },
