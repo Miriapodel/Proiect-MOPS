@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/currentUser";
+import SearchBar from "./SearchBar";
 
 export default async function NavBar() {
   const currentUser = await getCurrentUser();
@@ -26,6 +27,8 @@ export default async function NavBar() {
             </Link>
           </nav>
         </div>
+
+        <SearchBar />
 
         <div className="flex items-center gap-3 text-sm">
           {currentUser && (

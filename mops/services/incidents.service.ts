@@ -156,3 +156,29 @@ export async function updateIncidentStatusWithPermission(
 
     return updateIncidentStatus(incidentId, userId, newStatus);
 }
+
+export async function searchIncidents(query: string, limit: number = 50) {
+    if (!query || query.trim().length === 0) {
+        return [];
+    }
+
+    const searchQuery = `%${query.trim()}%`;
+
+    const incidents = await prisma.incident.findMany({
+        where: {
+            OR: [
+                { description: { contains: query.trim(), mode: "insensitive" } },
+                { category: { contains: query.trim(), mode: "insensitive" } },
+                { address: { contains: query.trim(), mode: "insensitive" } },
+            ],
+        },
+        take: limit,
+        orderBy: { createdAt: "desc" },
+        include: {
+            user: { select: { firstName: true, lastName: true, email: true } },
+            photos: { select: { id: true } },
+        },
+    });
+
+    return incidents;
+}
