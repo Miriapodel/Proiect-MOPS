@@ -23,12 +23,29 @@ model Incident {
   assignedTo   Users?   @relation("AssignedIncidents", fields: [assignedToId], references: [id])
   history     IncidentHistory[]
   comments    Comment[]
+  votes       IncidentVote[]
+  upvotes     Int      @default(0)
   
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   @@index([status])
   @@index([createdAt])
+  @@index([userId])
+  @@index([upvotes, createdAt])
+}
+
+model IncidentVote {
+  id         String   @id @default(uuid())
+  incidentId String
+  incident   Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  userId     String
+  user       Users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt  DateTime @default(now())
+
+  @@unique([incidentId, userId])
   @@index([userId])
 }
 
@@ -85,6 +102,7 @@ model Users {
 
   historyChanges    IncidentHistory[]
   comments          Comment[]
+  votes             IncidentVote[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
