@@ -116,6 +116,7 @@ The app uses three roles:
 - `USER`
   - Can create incidents.
   - Can view list & details.
+  - Can comment.
 
 - `OPERATOR`
   - Can be assigned incidents.

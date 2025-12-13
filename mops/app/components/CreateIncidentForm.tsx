@@ -180,6 +180,9 @@ export function CreateIncidentForm({ onSuccess }: CreateIncidentFormProps) {
       setValue('photoIds', []);
       setPhotoFiles([]);
 
+      // Scroll to top to see success message
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+
       if (onSuccess) {
         onSuccess(result.incident.id);
       }
