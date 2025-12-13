@@ -162,8 +162,6 @@ export async function searchIncidents(query: string, limit: number = 50) {
         return [];
     }
 
-    const searchQuery = `%${query.trim()}%`;
-
     const incidents = await prisma.incident.findMany({
         where: {
             OR: [
@@ -181,4 +179,55 @@ export async function searchIncidents(query: string, limit: number = 50) {
     });
 
     return incidents;
+}
+
+export type ExportIncidentsParams = {
+    startDate?: Date;
+    endDate?: Date;
+    category?: string;
+    status?: IncidentStatus;
+};
+
+export async function exportIncidents(params: ExportIncidentsParams = {}) {
+    const where: any = {};
+
+    if (params.startDate || params.endDate) {
+        where.createdAt = {};
+        if (params.startDate) where.createdAt.gte = params.startDate;
+        if (params.endDate) where.createdAt.lte = params.endDate;
+    }
+
+    if (params.category) where.category = params.category;
+    if (params.status) where.status = params.status;
+
+    const incidents = await prisma.incident.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        include: {
+            user: { select: { firstName: true, lastName: true, email: true } },
+            comments: { select: { id: true, content: true, user: { select: { firstName: true, lastName: true } }, createdAt: true } },
+            photos: { select: { id: true } },
+        },
+    });
+
+    // Format data for export
+    const formattedIncidents = incidents.map((incident) => ({
+        id: incident.id,
+        description: incident.description,
+        category: incident.category,
+        address: incident.address || "-",
+        status: incident.status,
+        latitude: incident.latitude,
+        longitude: incident.longitude,
+        reportedBy: `${incident.user.firstName} ${incident.user.lastName}`,
+        reporterEmail: incident.user.email,
+        createdAt: incident.createdAt.toISOString().split("T")[0],
+        updatedAt: incident.updatedAt.toISOString().split("T")[0],
+        comments: incident.comments
+            .map((c) => `[${c.createdAt.toISOString().split("T")[0]}] ${c.user.firstName} ${c.user.lastName}: ${c.content}`)
+            .join(" | ") || "-",
+        photosCount: incident.photos.length,
+    }));
+
+    return formattedIncidents;
 }

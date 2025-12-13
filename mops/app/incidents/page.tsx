@@ -4,6 +4,7 @@ import { IncidentCard } from '@/app/components/IncidentCard';
 import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from '@/lib/config';
 import PageSizeSelector from '@/app/components/PageSizeSelector';
 import PaginationControls from '@/app/components/PaginationControls';
+import ExportButton from '@/app/components/ExportButton';
 import { listIncidents } from '@/services/incidents.service';
 import { IncidentStatus } from '@/app/generated/prisma';
 
@@ -43,6 +44,7 @@ export default async function IncidentsPage({ searchParams }: { searchParams?: P
             >
               <span>Report new incident</span>
             </Link>
+            <ExportButton userRole={currentUser?.role} />
           </div>
         </header>
 

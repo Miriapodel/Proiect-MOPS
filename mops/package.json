@@ -14,6 +14,7 @@
     "@hookform/resolvers": "^3.3.4",
     "@prisma/client": "^6.19.0",
     "bcrypt": "^6.0.0",
+    "csv-stringify": "^6.6.0",
     "dotenv": "^17.2.3",
     "jose": "^6.1.0",
     "leaflet": "^1.9.4",
@@ -24,6 +25,7 @@
     "react-hook-form": "^7.50.1",
     "react-leaflet": "^5.0.0",
     "swr": "^2.3.7",
+    "xlsx": "^0.18.5",
     "zod": "^4.1.13"
   },
   "devDependencies": {
@@ -32,9 +34,9 @@
     "@types/estree": "^1.0.5",
     "@types/geojson": "^7946.0.14",
     "@types/jest": "^29.5.11",
+    "@types/json-schema": "^7.0.15",
     "@types/leaflet": "^1.9.8",
     "@types/node": "^20",
-    "@types/json-schema": "^7.0.15",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
