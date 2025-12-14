@@ -31,7 +31,7 @@ export default async function NavBar() {
               </Link>
 
               {currentUser?.role === "ADMIN" && (
-                <Link href="/admin" className="hover:text-green-800">
+                <Link href="/admin/dashboard" className="hover:text-green-800">
                   Admin
                 </Link>
               )}
