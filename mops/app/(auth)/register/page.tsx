@@ -28,6 +28,7 @@ export default function RegisterPage() {
       return;
     }
     router.push(next);
+    router.refresh();
   }
 
   return (

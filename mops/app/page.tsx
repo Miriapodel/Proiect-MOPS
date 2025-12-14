@@ -1,7 +1,6 @@
 import { cookies } from "next/headers";
 import { verifySession } from "@/lib/cookies";
 import { getCurrentUser } from "@/lib/currentUser";
-import { LogoutButton } from "./components/LogoutButton";
 
 export default async function Dashboard() {
   const token = (await cookies()).get("session")?.value;
@@ -32,11 +31,6 @@ export default async function Dashboard() {
                 {currentUser?.firstName} {currentUser?.lastName}
               </p>
             </div>
-          </div>
-          <div className="flex gap-4">
-            <form action="/api/auth/logout" method="post">
-              <LogoutButton />
-            </form>
           </div>
         </div>
       </div>

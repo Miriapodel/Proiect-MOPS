@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/currentUser";
 import SearchBar from "./SearchBar";
+import { LogoutButton } from "./LogoutButton";
 
 export default async function NavBar() {
   const currentUser = await getCurrentUser();
+  const isAuthed = !!currentUser;
 
   return (
     <header className="border-b border-green-100 bg-white/80 backdrop-blur">
@@ -12,55 +14,55 @@ export default async function NavBar() {
           <Link href="/" className="text-xl font-bold text-green-800">
             Safe City
           </Link>
-          <nav className="hidden sm:flex items-center gap-3 text-sm text-gray-700">
-            <Link href="/incidents" className="hover:text-green-800">
-              Incidents
-            </Link>
-            <Link href="/incidents/mine" className="hover:text-green-800">
-              My Incidents
-            </Link>
-            <Link href="/map" className="hover:text-green-800">
-              Map
-            </Link>
-            <Link href="/report" className="hover:text-green-800">
-              Report
-            </Link>
-            {currentUser?.role === "ADMIN" && (
-              <Link href="/admin/dashboard" className="hover:text-green-800 font-semibold text-green-700">
-                Dashboard
+
+          {isAuthed && (
+            <nav className="hidden sm:flex items-center gap-3 text-sm text-gray-700">
+              <Link href="/incidents" className="hover:text-green-800">
+                Incidents
               </Link>
-            )}
-          </nav>
+              <Link href="/incidents/mine" className="hover:text-green-800">
+                My Incidents
+              </Link>
+              <Link href="/map" className="hover:text-green-800">
+                Map
+              </Link>
+              <Link href="/report" className="hover:text-green-800">
+                Report
+              </Link>
+
+              {currentUser?.role === "ADMIN" && (
+                <Link href="/admin" className="hover:text-green-800">
+                  Admin
+                </Link>
+              )}
+            </nav>
+          )}
         </div>
 
-        <SearchBar />
+        {isAuthed && <SearchBar />}
 
         <div className="flex items-center gap-3 text-sm">
-          {currentUser && (
+          {isAuthed && (
             <span className="hidden sm:inline text-gray-600">
-              {currentUser.firstName} {currentUser.lastName}
+              {currentUser!.firstName} {currentUser!.lastName}
             </span>
           )}
-          {currentUser ? (
+
+          {isAuthed ? (
             <form action="/api/auth/logout" method="post">
-              <button
-                type="submit"
-                className="px-3 py-1.5 rounded-lg bg-red-600 text-white text-xs font-semibold hover:bg-red-700"
-              >
-                Logout
-              </button>
+              <LogoutButton />
             </form>
           ) : (
             <div className="flex gap-2">
               <Link
                 href="/login"
-                className="px-3 py-1.5 rounded-lg border border-green-200 text-xs font-semibold text-green-800 hover:bg-green-50"
+                className="px-4 py-2 rounded-lg border border-green-200 text-green-800 hover:bg-green-50"
               >
                 Login
               </Link>
               <Link
                 href="/register"
-                className="px-3 py-1.5 rounded-lg bg-green-600 text-white text-xs font-semibold hover:bg-green-700"
+                className="px-4 py-2 rounded-lg bg-green-700 text-white hover:bg-green-800"
               >
                 Register
               </Link>
