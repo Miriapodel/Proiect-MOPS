@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/currentUser";
+import SearchBar from "./SearchBar";
 
 export default async function NavBar() {
   const currentUser = await getCurrentUser();
@@ -24,8 +25,15 @@ export default async function NavBar() {
             <Link href="/report" className="hover:text-green-800">
               Report
             </Link>
+            {currentUser?.role === "ADMIN" && (
+              <Link href="/admin/dashboard" className="hover:text-green-800 font-semibold text-green-700">
+                Dashboard
+              </Link>
+            )}
           </nav>
         </div>
+
+        <SearchBar />
 
         <div className="flex items-center gap-3 text-sm">
           {currentUser && (

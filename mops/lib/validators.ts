@@ -12,3 +12,18 @@ export const loginSchema = z.object({
   password: z.string().min(8),
 });
 
+export const requestResetSchema = z.object({
+  email: z.string().email("Invalid email address").max(255),
+});
+
+export const resetPasswordSchema = z.object({
+  token: z.string().min(1, "Token is required").max(255),
+  password: z.string()
+    .min(8, "Password must be at least 8 characters")
+    .max(128, "Password must not exceed 128 characters"),
+  confirmPassword: z.string(),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords do not match",
+  path: ["confirmPassword"],
+});
+

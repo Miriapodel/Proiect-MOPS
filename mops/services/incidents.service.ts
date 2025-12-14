@@ -37,7 +37,7 @@ export async function listIncidents(params: ListIncidentsParams = {}) {
             where,
             skip: (page - 1) * pageSize,
             take: pageSize,
-            orderBy: { createdAt: "desc" },
+            orderBy: [{ upvotes: "desc" }, { createdAt: "desc" }],
             include: { user: { select: { firstName: true, lastName: true, email: true } }, photos: { select: { id: true } } },
         }),
         prisma.incident.count({ where }),
@@ -155,4 +155,135 @@ export async function updateIncidentStatusWithPermission(
         throw forbidden("Only Admins or the assigned Operator can update this incident", { incidentId });
 
     return updateIncidentStatus(incidentId, userId, newStatus);
+}
+
+export async function searchIncidents(query: string, limit: number = 50) {
+    if (!query || query.trim().length === 0) {
+        return [];
+    }
+
+    const incidents = await prisma.incident.findMany({
+        where: {
+            OR: [
+                { description: { contains: query.trim(), mode: "insensitive" } },
+                { category: { contains: query.trim(), mode: "insensitive" } },
+                { address: { contains: query.trim(), mode: "insensitive" } },
+            ],
+        },
+        take: limit,
+        orderBy: [{ upvotes: "desc" }, { createdAt: "desc" }],
+        include: {
+            user: { select: { firstName: true, lastName: true, email: true } },
+            photos: { select: { id: true } },
+        },
+    });
+
+    return incidents;
+}
+
+export type ExportIncidentsParams = {
+    startDate?: Date;
+    endDate?: Date;
+    category?: string;
+    status?: IncidentStatus;
+};
+
+export async function exportIncidents(params: ExportIncidentsParams = {}) {
+    const where: any = {};
+
+    if (params.startDate || params.endDate) {
+        where.createdAt = {};
+        if (params.startDate) where.createdAt.gte = params.startDate;
+        if (params.endDate) where.createdAt.lte = params.endDate;
+    }
+
+    if (params.category) where.category = params.category;
+    if (params.status) where.status = params.status;
+
+    const incidents = await prisma.incident.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        include: {
+            user: { select: { firstName: true, lastName: true, email: true } },
+            comments: { select: { id: true, content: true, user: { select: { firstName: true, lastName: true } }, createdAt: true } },
+            photos: { select: { id: true } },
+        },
+    });
+
+    // Format data for export
+    const formattedIncidents = incidents.map((incident) => ({
+        id: incident.id,
+        description: incident.description,
+        category: incident.category,
+        address: incident.address || "-",
+        status: incident.status,
+        latitude: incident.latitude,
+        longitude: incident.longitude,
+        reportedBy: `${incident.user.firstName} ${incident.user.lastName}`,
+        reporterEmail: incident.user.email,
+        createdAt: incident.createdAt.toISOString().split("T")[0],
+        updatedAt: incident.updatedAt.toISOString().split("T")[0],
+        comments: incident.comments
+            .map((c) => `[${c.createdAt.toISOString().split("T")[0]}] ${c.user.firstName} ${c.user.lastName}: ${c.content}`)
+            .join(" | ") || "-",
+        photosCount: incident.photos.length,
+    }));
+
+    return formattedIncidents;
+}
+
+export async function upvoteIncident(incidentId: string, userId: string) {
+    return prisma.$transaction(async (tx) => {
+        // Check if already voted
+        const existing = await tx.incidentVote.findUnique({
+            where: { incidentId_userId: { incidentId, userId } },
+        });
+
+        if (existing) {
+            // Remove the upvote
+            await tx.incidentVote.delete({
+                where: { incidentId_userId: { incidentId, userId } },
+            });
+
+            const updated = await tx.incident.update({
+                where: { id: incidentId },
+                data: { upvotes: { decrement: 1 } },
+                select: { upvotes: true },
+            });
+
+            return { upvotes: updated.upvotes, hasVoted: false };
+        }
+
+        // Add the upvote
+        await tx.incidentVote.create({
+            data: {
+                incidentId,
+                userId,
+            },
+        });
+
+        const updated = await tx.incident.update({
+            where: { id: incidentId },
+            data: { upvotes: { increment: 1 } },
+            select: { upvotes: true },
+        });
+
+        return { upvotes: updated.upvotes, hasVoted: true };
+    });
+}
+
+export async function listTrendingIncidents(limit = 10) {
+    const incidents = await prisma.incident.findMany({
+        orderBy: [
+            { upvotes: "desc" },
+            { createdAt: "desc" },
+        ],
+        take: limit,
+        include: {
+            user: { select: { firstName: true, lastName: true, email: true } },
+            photos: { select: { id: true } },
+        },
+    });
+
+    return incidents;
 }
