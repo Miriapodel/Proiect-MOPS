@@ -8,6 +8,8 @@ export type ListIncidentsParams = {
     status?: IncidentStatus;
     category?: string;
     userId?: string; // filter by reporter
+    startDate?: string; // ISO date string
+    endDate?: string; // ISO date string
 };
 
 export type CreateIncidentInput = {
@@ -31,6 +33,20 @@ export async function listIncidents(params: ListIncidentsParams = {}) {
         where.category = params.category;
     if (params.userId)
         where.userId = params.userId;
+    
+    // Add date range filtering
+    if (params.startDate || params.endDate) {
+        where.createdAt = {};
+        if (params.startDate) {
+            where.createdAt.gte = new Date(params.startDate);
+        }
+        if (params.endDate) {
+            // Add 1 day to include the entire end date
+            const endDate = new Date(params.endDate);
+            endDate.setDate(endDate.getDate() + 1);
+            where.createdAt.lt = endDate;
+        }
+    }
 
     const [items, total] = await Promise.all([
         prisma.incident.findMany({
