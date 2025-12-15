@@ -1,9 +1,8 @@
 import { getCurrentUser } from '@/lib/currentUser';
 import Link from 'next/link';
 import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from '@/lib/config';
-import PageSizeSelector from '@/app/components/PageSizeSelector';
-import PaginationControls from '@/app/components/PaginationControls';
 import ExportButton from '@/app/components/ExportButton';
+import IncidentsDisplay from '@/app/components/IncidentsDisplay';
 import { IncidentsList } from '@/app/components/IncidentsList';
 import { listIncidents } from '@/services/incidents.service';
 import { IncidentStatus } from '@/app/generated/prisma';
@@ -16,6 +15,8 @@ export default async function IncidentsPage({ searchParams }: { searchParams?: P
   const pageSizeParam = typeof params?.pageSize === 'string' ? params?.pageSize : Array.isArray(params?.pageSize) ? params?.pageSize[0] : undefined;
   const status = typeof params?.status === 'string' ? params?.status : undefined;
   const category = typeof params?.category === 'string' ? params?.category : undefined;
+  const startDate = typeof params?.startDate === 'string' ? params?.startDate : undefined;
+  const endDate = typeof params?.endDate === 'string' ? params?.endDate : undefined;
 
   const page = Math.max(1, parseInt(pageParam || '1', 10) || 1);
   const rawSize = parseInt(pageSizeParam || String(DEFAULT_PAGE_SIZE), 10) || DEFAULT_PAGE_SIZE;
@@ -25,7 +26,9 @@ export default async function IncidentsPage({ searchParams }: { searchParams?: P
     page,
     pageSize,
     status: status as IncidentStatus | undefined,
-    category
+    category,
+    startDate,
+    endDate
   });
   const currentUser = await getCurrentUser();
 
@@ -48,7 +51,7 @@ export default async function IncidentsPage({ searchParams }: { searchParams?: P
           </div>
         </header>
 
-        {incidents.length === 0 ? (
+        {incidents.length === 0 && !category && !status && !startDate && !endDate ? (
           <div className="bg-white rounded-2xl shadow-lg p-12 text-center border-2 border-gray-200">
             <h2 className="text-2xl font-bold text-gray-700 mb-2">
               No incidents reported yet
@@ -65,20 +68,14 @@ export default async function IncidentsPage({ searchParams }: { searchParams?: P
             </Link>
           </div>
         ) : (
-          <div className="space-y-6">
-            <div className="bg-white rounded-xl shadow-md p-4 border-2 border-green-100">
-              <p className="text-gray-700 font-semibold">
-                Total incidents: <span className="text-green-700">{total}</span>
-              </p>
-            </div>
-
-            <IncidentsList incidents={incidents} currentUserId={currentUser?.id} />
-
-            <div className="flex items-center justify-center gap-4">
-              <PaginationControls page={page} totalPages={totalPages} />
-              <PageSizeSelector options={[5, 10, 20, 50, 100]} label="" />
-            </div>
-          </div>
+          <IncidentsDisplay
+            initialIncidents={incidents}
+            initialTotal={total}
+            initialPages={totalPages}
+            currentPage={page}
+            pageSize={pageSize}
+            currentUserId={currentUser?.id}
+          />
         )}
       </div>
     </div>
