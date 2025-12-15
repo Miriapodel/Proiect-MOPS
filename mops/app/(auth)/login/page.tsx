@@ -28,6 +28,7 @@ function LoginForm() {
       return;
     }
     router.push(next);
+    router.refresh();
   }
 
   return (
