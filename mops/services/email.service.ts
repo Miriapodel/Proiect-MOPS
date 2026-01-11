@@ -169,6 +169,81 @@ Safe City Team
       text,
     });
   }
+
+  async sendIncidentStatusUpdateEmail(params: {
+    email: string;
+    firstName: string;
+    incidentId: string;
+    oldStatus: string;
+    newStatus: string;
+  }): Promise<void> {
+    const incidentLink = `${process.env.APP_URL}/incidents/${params.incidentId}`;
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: linear-gradient(135deg, #059669 0%, #047857 100%);
+                     color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+            .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
+            .status { background: #ecfeff; border-left: 4px solid #06b6d4;
+                      padding: 12px; margin: 20px 0; border-radius: 4px; }
+            .button { display: inline-block; padding: 14px 28px; background: #059669;
+                     color: white; text-decoration: none; border-radius: 8px;
+                     font-weight: bold; margin: 20px 0; }
+            .button:hover { background: #047857; }
+            .footer { text-align: center; margin-top: 30px; color: #6b7280; font-size: 14px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>Safe City</h1>
+              <h2>Incident Status Updated</h2>
+            </div>
+            <div class="content">
+              <p>Hello ${params.firstName},</p>
+              <p>The status of your incident has changed.</p>
+              <div class="status">
+                <strong>Previous:</strong> ${params.oldStatus}<br />
+                <strong>Current:</strong> ${params.newStatus}
+              </div>
+              <a href="${incidentLink}" class="button">View Incident</a>
+              <p>If the button does not work, copy and paste this link into your browser:</p>
+              <p style="word-break: break-all; color: #059669;">${incidentLink}</p>
+            </div>
+            <div class="footer">
+              <p>&copy; ${new Date().getFullYear()} Safe City. All rights reserved.</p>
+              <p>This is an automated email, please do not reply.</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+
+    const text = `
+Hello ${params.firstName},
+
+The status of your incident has changed.
+Previous: ${params.oldStatus}
+Current: ${params.newStatus}
+
+View incident: ${incidentLink}
+
+Safe City Team
+    `.trim();
+
+    await this.sendEmail({
+      to: params.email,
+      subject: 'Your Safe City Incident Status Updated',
+      html,
+      text,
+    });
+  }
 }
 
 export const emailService = new EmailService();

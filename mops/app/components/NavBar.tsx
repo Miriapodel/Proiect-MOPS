@@ -29,6 +29,9 @@ export default async function NavBar() {
               <Link href="/report" className="hover:text-green-800">
                 Report
               </Link>
+              <Link href="/feedback" className="hover:text-green-800">
+                Feedback
+              </Link>
 
               {currentUser?.role === "ADMIN" && (
                 <Link href="/admin/dashboard" className="hover:text-green-800">
