@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { notFound, badRequest, forbidden } from "@/lib/errors";
 import { IncidentStatus, Role } from "@/app/generated/prisma";
+import { emailService } from "./email.service";
 
 export type ListIncidentsParams = {
     page?: number;
@@ -103,7 +104,10 @@ export async function listUserIncidents(userId: string, params: Omit<ListInciden
 }
 
 export async function updateIncidentStatus(incidentId: string, changedById: string, newStatus: IncidentStatus) {
-    const incident = await prisma.incident.findUnique({ where: { id: incidentId } });
+    const incident = await prisma.incident.findUnique({
+        where: { id: incidentId },
+        include: { user: { select: { firstName: true, email: true } } },
+    });
 
     if (!incident)
         throw notFound("Incident not found", { incidentId });
@@ -115,7 +119,7 @@ export async function updateIncidentStatus(incidentId: string, changedById: stri
     if (!validStatuses.includes(newStatus))
         throw badRequest("Invalid status", { newStatus });
 
-    return prisma.$transaction(async (tx) => {
+    const updated = await prisma.$transaction(async (tx) => {
         const updated = await tx.incident.update({
             where: { id: incidentId },
             data: { status: newStatus },
@@ -130,6 +134,22 @@ export async function updateIncidentStatus(incidentId: string, changedById: stri
         });
         return updated;
     });
+
+    if (incident.user?.email) {
+        try {
+            await emailService.sendIncidentStatusUpdateEmail({
+                email: incident.user.email,
+                firstName: incident.user.firstName,
+                incidentId,
+                oldStatus: incident.status,
+                newStatus,
+            });
+        } catch (error) {
+            console.error("Failed to send incident status update email:", error);
+        }
+    }
+
+    return updated;
 }
 
 export async function deleteIncident(incidentId: string, requesterId: string) {
